@@ -32,6 +32,19 @@ elif [ "$UNAME" == "Darwin" ] ; then
 
     MONGO_NAME="mongodb-osx-${ARCH}-2.2.0"
     MONGO_URL="http://fastdl.mongodb.org/osx/${MONGO_NAME}.tgz"
+elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # Bitness does not matter on Windows, thus we don't check it here.
+
+    # We check that all of the required tools are present for people that want to make a dev bundle on Windows.
+    command -v git >/dev/null 2>&1 || { echo >&2 "I require 'git' but it's not installed. Aborting."; exit 1; }
+    command -v mktemp >/dev/null 2>&1 || { echo >&2 "I require 'mktemp' but it's not installed. Aborting."; exit 1; }
+    command -v curl >/dev/null 2>&1 || { echo >&2 "I require 'curl' but it's not installed. Aborting."; exit 1; }
+    command -v unzip >/dev/null 2>&1 || { echo >&2 "I require 'unzip' but it's not installed. Aborting."; exit 1; }
+    command -v tar >/dev/null 2>&1 || { echo >&2 "I require 'tar' but it's not installed. Aborting."; exit 1; }
+
+    # XXX Can be adapted to support both 32-bit and 64-bit, currently supports only 32-bit (2 GB memory limit).
+    MONGO_NAME="mongodb-win32-i386-2.2.0"
+    MONGO_URL="http://downloads.mongodb.org/win32/${MONGO_NAME}.zip"
 else
     echo "This OS not yet supported"
     exit 1
@@ -45,32 +58,66 @@ TARGET_DIR=`pwd`
 DIR=`mktemp -d -t generate-dev-bundle-XXXXXXXX`
 trap 'rm -rf "$DIR" >/dev/null 2>&1' 0
 
-echo BUILDING IN "$DIR"
-
 cd "$DIR"
 chmod 755 .
 umask 022
-mkdir build
-cd build
 
-git clone git://github.com/joyent/node.git
-cd node
-git checkout v0.8.11
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # XXX Only install node if it is not yet present.
+    #     To be able to install Node.js locally instead of to Program Files, we need to wait for https://github.com/joyent/node/issues/2279.
+    command -v node >/dev/null 2>&1 || {
+        echo DOWNLOADING NODE.JS IN "$DIR"
+        echo.
 
-./configure --prefix="$DIR"
-make -j4
-make install PORTABLE=1
-# PORTABLE=1 is a node hack to make npm look relative to itself instead
-# of hard coding the PREFIX.
+        # Make sure we are on a version that passes the node-fibers tests on Windows.
+        curl -O http://nodejs.org/dist/v0.8.11/node-v0.8.11-x86.msi
 
-# export path so we use our new node for later builds
-export PATH="$DIR/bin:$PATH"
+        echo.
+        echo INSTALLING NODE.JS
+        echo.
+
+        # Let's install node.js (includes v8 and npm).
+        $COMSPEC \/c node-v0.8.11-x86.msi\ \/qr; true
+        rm node-v0.8.11-x86.msi
+
+        # Make sure we can see node and npm from now on.
+        export PATH="/c/Program Files (x86)/nodejs:/c/Program Files/nodejs:$PATH"
+    }
+else
+    echo BUILDING IN "$DIR"
+
+    mkdir build
+    cd build
+
+    git clone git://github.com/joyent/node.git
+    cd node
+    git checkout v0.8.11
+
+    ./configure --prefix="$DIR"
+    make -j4
+    make install PORTABLE=1
+    # PORTABLE=1 is a node hack to make npm look relative to itself instead
+    # of hard coding the PREFIX.
+
+    # export path so we use our new node for later builds
+    export PATH="$DIR/bin:$PATH"
+fi
 
 which node
 
 which npm
 
-cd "$DIR/lib/node_modules"
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # XXX On Windows node is installed in Program Files, so we jump there for the moment.
+    NODE=$(which node)
+    cd "${NODE}_modules"
+
+    # XXX Since we are working in the same location each time on Windows, we need to make sure existing node modules are no longer present so they can be replaced.
+    rm -rf connect gzippo optimist coffee-script less sass stylus nib mime semver handlebars mongodb uglify-js clean-css progress useragent useragent request http-proxy simplesmtp stream-buffers keypress mailcomposer sockjs fibers
+else
+    cd "$DIR/lib/node_modules"
+fi
+
 npm install connect@1.9.2 # not 2.x yet. sockjs doesn't work w/ new connect
 npm install gzippo@0.1.7
 npm install optimist@0.3.4
@@ -119,23 +166,51 @@ cd ../..
 
 
 cd "$DIR"
-curl "$MONGO_URL" | tar -xz
+curl -O "$MONGO_URL"
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # The Windows distribution of MONGO comes in a different format, unzip accordingly.
+    unzip "${MONGO_NAME}.zip"
+    rm "${MONGO_NAME}.zip"
+else
+    tar -xz "${MONGO_NAME}.tgz"
+fi
 mv "$MONGO_NAME" mongodb
 
 # don't ship a number of mongo binaries. they are big and unused. these
 # could be deleted from git dev_bundle but not sure which we'll end up
 # needing.
 cd mongodb/bin
-rm bsondump mongodump mongoexport mongofiles mongoimport mongorestore mongos mongosniff mongostat mongotop mongooplog mongoperf
+
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # The Windows distribution of MONGO comes in a different format, we need to specify ".exe" and "monogosniff.exe" misses.
+    rm bsondump.exe mongodump.exe mongoexport.exe mongofiles.exe mongoimport.exe mongorestore.exe mongos.exe mongostat.exe mongotop.exe mongooplog.exe mongoperf.exe *.pdb
+else
+    rm bsondump mongodump mongoexport mongofiles mongoimport mongorestore mongos mongosniff mongostat mongotop mongooplog mongoperf
+fi
+
 cd ../..
-
-
 
 echo BUNDLING
 
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # XXX On Windows we make sure Node.js is bundled along in a proper way.
+    #     To be able to place Node.js here straight away instead of copying Program Files, we need to wait for https://github.com/joyent/node/issues/2279.
+    NODE=$(which node)
+    cd "${NODE}_modules"
+    cd ..
+    mkdir $DIR/bin
+    mkdir $DIR/lib
+    cp -R . $DIR/bin
+    cp -R $DIR/bin/node_modules $DIR/lib/node_modules
+fi
+
 cd "$DIR"
 echo "${BUNDLE_VERSION}" > .bundle_version.txt
-rm -rf build
+
+# If not on Windows, we did build node.js; so, we need to remove the build directory.
+if [[ "$UNAME" != CYGWIN* && "$UNAME" != MINGW* ]] ; then
+    rm -rf build
+fi
 
 tar czf "${TARGET_DIR}/dev_bundle_${UNAME}_${ARCH}_${BUNDLE_VERSION}.tar.gz" .
 

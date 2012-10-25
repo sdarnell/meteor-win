@@ -1,0 +1,1 @@
+@echo off&&"%METEOR_PATH%\bin\node.exe" "%METEOR_PATH%\app\meteor\meteor.js" %*
