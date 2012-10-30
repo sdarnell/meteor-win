@@ -1,6 +1,7 @@
 var fs = require("fs");
 var path = require('path');
 var _ = require(path.join(__dirname, 'third', 'underscore.js'));
+var exec = require('child_process').exec;
 
 var files = module.exports = {
   // A sort comparator to order files into load order.
@@ -247,14 +248,25 @@ var files = module.exports = {
       throw e;
     }
 
-    if (stat.isDirectory()) {
+    if (stat.isDirectory() && !p.match(/node_modules/g)) {
       _.each(fs.readdirSync(p), function (file) {
         file = path.join(p, file);
         files.rm_recursive(file);
       });
-      fs.rmdirSync(p)
+      fs.rmdirSync(p);
     } else
-      fs.unlinkSync(p);
+      if (process.platform === "win32" && p.match(/node_modules/g)) {
+        // Make sure that symbolic links are properly removed on Windows, regardless of using bash / cmd.
+        try { fs.unlinkSync(p); } catch (e) {}
+        exec('cmd /c "del /Q ^"' + p.replace(/\//g, '\\').replace(/\/*$/g, '') + '^"" || cmd /c "rmdir /Q ^"' + p.replace(/\//g, '\\').replace(/\\*$/g, '') + '^"" || rm "' + p.replace(/\\/g, '/').replace(/^([a-zA-Z]):/g, '/$1').replace(/\/*$/g, '') + '"');
+
+        // XXX Sadly, the only way to somewhat ensure the above was done in a synchroneous way.
+        var startTime = new Date().getTime();
+        while (fs.existsSync(p.replace(/\\/g, '/')) && new Date().getTime() < startTime + 5000);
+      }
+      else
+        // Removing any other files on any OS, as well as symbolic links on Linux.
+        fs.unlinkSync(p);
   },
 
   // like mkdir -p. if it returns true, the item is a directory (even

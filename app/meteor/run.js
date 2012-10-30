@@ -344,7 +344,7 @@ _.extend(DependencyWatcher.prototype, {
     // monitor it if necessary
     if (!(filepath in self.watches) &&
         (is_interesting || stats.isDirectory())) {
-      if (!stats.isDirectory()) {
+      if (!stats.isDirectory() && process.platform !== "win32") {
         // Intentionally not using fs.watch since it doesn't play well with
         // vim (https://github.com/joyent/node/issues/3172)
         fs.watchFile(filepath, {interval: 500}, // poll a lot!
@@ -352,6 +352,7 @@ _.extend(DependencyWatcher.prototype, {
         self.watches[filepath] = function() { fs.unwatchFile(filepath); };
       } else {
         // fs.watchFile doesn't work for directories (as tested on ubuntu)
+        //              and also doesn't work on Windows.
         var watch = fs.watch(filepath, {interval: 500}, // poll a lot!
                      _.bind(self._scan, self, false, filepath));
         self.watches[filepath] = function() { watch.close(); };
@@ -613,7 +614,7 @@ exports.run = function (app_dir, bundle_opts, port) {
         // declare it failed and die.
         mongo_err_count += 1;
         if (mongo_err_count >= 3) {
-          console.log("Can't start mongod. Check for other processes listening on port " + mongo_port + " or other meteors running in the same project.");
+          console.log("Can't start mongod. Check for other processes listening on port " + mongo_port + " or other meteors running in the same project.\n\nIf no mongod is running you can try removing the lock file at .meteor/local/db/mongod.lock and if necessary run `mongod --dbpath \".meteor\\local\\db\" --repair` from your project dir.");
           process.exit(1);
         }
         if (mongo_err_timer)

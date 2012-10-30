@@ -32,6 +32,7 @@ var fs = require('fs');
 var uglify = require('uglify-js');
 var cleanCSS = require('clean-css');
 var _ = require(path.join(__dirname, 'third', 'underscore.js'));
+var exec = require('child_process').exec;
 
 // files to ignore when bundling. node has no globs, so use regexps
 var ignore_files = [
@@ -479,6 +480,7 @@ _.extend(Bundle.prototype, {
     // XXX cleaner error handling. don't make the humans read an
     // exception (and, make suitable for use in automated systems)
     files.rm_recursive(build_path);
+    files.rm_recursive(output_path);
     files.mkdir_p(build_path, 0755);
 
     // --- Core runner code ---
@@ -489,11 +491,17 @@ _.extend(Bundle.prototype, {
 
     // --- Third party dependencies ---
 
-    if (dev_bundle_mode === "symlink")
-      fs.symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
-                     path.join(build_path, 'server', 'node_modules'));
+    if (dev_bundle_mode === "symlink") {
+      if (process.platform === "win32") {
+        // Execute both ways of symlinking files, one of the two will pass.
+        exec('ln -s "' + process.env.NODE_PATH + '" "' + path.join(build_path, 'server', 'node_modules') + '"');
+        exec('mklink /J "' + path.join(build_path, 'server', 'node_modules') + '" "' + process.env.NODE_PATH + '"');
+      } else
+        fs.symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
+                       path.join(build_path, 'server', 'node_modules'), 'dir');
+    }
     else if (dev_bundle_mode === "copy")
-      files.cp_r(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
+      files.cp_r((process.platform !== "win32" ? path.join(files.get_dev_bundle(), 'lib', 'node_modules') : process.env.NODE_PATH),
                  path.join(build_path, 'server', 'node_modules'),
                  {ignore: ignore_files});
     else
@@ -552,7 +560,9 @@ _.extend(Bundle.prototype, {
     for (var rel_path in self.files.server) {
       var path_in_bundle = path.join('app', rel_path);
       var full_path = path.join(build_path, path_in_bundle);
-      app_json.load.push(path_in_bundle);
+      // XXX Since paths are hardcoded in the file, we need the slashes to be /
+      // so they work cross-platform after bundling and unpacking or deploying.
+      app_json.load.push(path_in_bundle.replace(/\\/g, '/'));
       files.mkdir_p(path.dirname(full_path), 0755);
       fs.writeFileSync(full_path, self.files.server[rel_path]);
     }
@@ -605,7 +615,6 @@ _.extend(Bundle.prototype, {
     // --- Move into place ---
 
     // XXX cleaner error handling (no exceptions)
-    files.rm_recursive(output_path);
     fs.renameSync(build_path, output_path);
   }
 

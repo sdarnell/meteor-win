@@ -77,7 +77,7 @@ var bundle_and_deploy = function (site, app_dir, opt_debug, opt_tests,
                       include_tests: opt_tests };
 
   process.stdout.write('Deploying to ' + site + '.  Bundling ... ');
-  var bundler = require(__dirname, '..', 'lib', 'bundler.js');
+  var bundler = require(path.join('..', 'lib', 'bundler.js'));
   var errors = bundler.bundle(app_dir, bundle_path, bundle_opts);
   if (errors) {
     process.stdout.write("\n\nErrors prevented deploying:\n");
@@ -94,39 +94,54 @@ var bundle_and_deploy = function (site, app_dir, opt_debug, opt_tests,
   if (password) opts.password = password;
   if (set_password) opts.set_password = set_password;
 
-  var tar = child_process.spawn(
-    'tar', ['czf', '-', 'bundle'], {cwd: build_dir});
+  var spawn = require('child_process').spawn;
+  var tarTest = spawn('tar', ['--help'], {cwd: build_dir});
+  var error = '';
+  tarTest.on('exit', function (code) {
+    if (code === 127 && process.platform === "win32")
+      error = '\nError deploying application:\n\nDeplying from the Windows command line is not yet supported, please use something like Git Bash for Windows instead.\n\nYou can obtain this from: http://git-scm.com/downloads';
 
-  var rpc = meteor_rpc('deploy', 'POST', site, opts, function (err, body) {
-    if (err) {
-      process.stderr.write("\nError deploying application: " + body + "\n");
-      process.exit(1);
-    }
+    var rpc_callback = function (err, body) {
+      if (err) {
+        if (error && process.platform === "win32")
+          process.stderr.write(error);
+        else
+          process.stderr.write("\nError deploying application: " + body + "\n");
+        process.exit(1);
+      }
 
-    process.stdout.write('done.\n');
-    process.stdout.write('Now serving at ' + site + '\n');
+      process.stdout.write('done.\n');
+      process.stdout.write('Now serving at ' + site + '\n');
 
-    files.rm_recursive(build_dir);
+      files.rm_recursive(build_dir);
 
-    if (!site.match('meteor.com')) {
-      var dns = require('dns');
-      dns.resolve(site, 'CNAME', function (err, cnames) {
-        if (err || cnames[0] !== 'origin.meteor.com') {
-          dns.resolve(site, 'A', function (err, addresses) {
-            if (err || addresses[0] !== '107.22.210.133') {
-              process.stdout.write('-------------\n');
-              process.stdout.write("You've deployed to a custom domain.\n");
-              process.stdout.write("Please be sure to CNAME your hostname to origin.meteor.com,\n");
-              process.stdout.write("or set an A record to 107.22.210.133.\n");
-              process.stdout.write('-------------\n');
-            }
-          });
-        }
-      });
-    }
+      if (!site.match('meteor.com')) {
+        var dns = require('dns');
+        dns.resolve(site, 'CNAME', function (err, cnames) {
+          if (err || cnames[0] !== 'origin.meteor.com') {
+            dns.resolve(site, 'A', function (err, addresses) {
+              if (err || addresses[0] !== '107.22.210.133') {
+                process.stdout.write('-------------\n');
+                process.stdout.write("You've deployed to a custom domain.\n");
+                process.stdout.write("Please be sure to CNAME your hostname to origin.meteor.com,\n");
+                process.stdout.write("or set an A record to 107.22.210.133.\n");
+                process.stdout.write('-------------\n');
+                if (process.platform === "win32")
+                  process.exit(0);
+              }
+            });
+          }
+        });
+      } else {
+        if (process.platform === "win32")
+          process.exit(0);
+      }
+    };
+
+    var tar = spawn('tar', ['czf', '-', 'bundle'], {cwd: build_dir});
+    var rpc = meteor_rpc('deploy', 'POST', site, opts, rpc_callback);
+    tar.stdout.pipe(rpc);
   });
-
-  tar.stdout.pipe(rpc);
 };
 
 var delete_app = function (url) {

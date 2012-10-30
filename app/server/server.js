@@ -72,11 +72,22 @@ var run = function () {
     throw new Error("MONGO_URL must be set in environment");
 
   // webserver
+  var fixURLsecurityBug = function (func) {
+    return function (req, res, next) {
+      if (req)
+        req.url = req.url.replace(/\\/g, '/');
+
+      return func(req, res, next);
+    }
+  }
+
   var app = connect.createServer();
   var static_cacheable_path = path.join(bundle_dir, 'static_cacheable');
-  if (fs.existsSync(static_cacheable_path))
-    app.use(gzippo.staticGzip(static_cacheable_path, {clientMaxAge: 1000 * 60 * 60 * 24 * 365}));
-  app.use(gzippo.staticGzip(path.join(bundle_dir, 'static')));
+  if (fs.existsSync(static_cacheable_path)) {
+    var static_cacheable_gzippo = gzippo.staticGzip(static_cacheable_path, {clientMaxAge: 1000 * 60 * 60 * 24 * 365});
+    app.use(fixURLsecurityBug(static_cacheable_gzippo));
+  }
+  app.use(fixURLsecurityBug(gzippo.staticGzip(path.join(bundle_dir, 'static').replace(/\\/g, '/'))));
 
   // read bundle config file
   var info_raw =
@@ -143,7 +154,7 @@ var run = function () {
 
   }).run();
 
-  if (argv.keepalive)
+  if (argv.keepalive && process.platform !== "win32")
     init_keepalive();
 };
 
