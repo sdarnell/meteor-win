@@ -42,6 +42,11 @@ var ignore_files = [
     /^\.git$/ /* often has too many files to watch */
 ];
 
+// Make the relative URLs HTTP compliant my making sure they always use forward slashes instead of backward slashes.
+var make_HTTP_compliant = function (file) {
+  return file.replace(/\\/g, '/');
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 // PackageInstance
 ///////////////////////////////////////////////////////////////////////////////
@@ -281,8 +286,12 @@ var Bundle = function () {
             throw new Error("Must specify path")
 
           if (w === "client" || w === "server") {
-            self.files[w][options.path] = data;
-            self.js[w].push(options.path);
+            var proper_path = w === "client" ? make_HTTP_compliant(options.path) : options.path;
+
+            console.log(proper_path)
+
+            self.files[w][proper_path] = data;
+            self.js[w].push(proper_path);
           } else {
             throw new Error("Invalid environment");
           }
@@ -294,8 +303,11 @@ var Bundle = function () {
             return;
           if (!options.path)
             throw new Error("Must specify path")
-          self.files.client[options.path] = data;
-          self.css.push(options.path);
+
+          var proper_path = w === "client" ? make_HTTP_compliant(options.path) : options.path;
+
+          self.files.client[proper_path] = data;
+          self.css.push(proper_path);
         } else if (options.type === "head" || options.type === "body") {
           if (w !== "client")
             throw new Error("HTML segments can only go to the client");
@@ -409,7 +421,7 @@ _.extend(Bundle.prototype, {
     var name = path.sep + digest + ".js";
 
     self.files.client_cacheable[name] = new Buffer(final_code);
-    self.js.client = [name];
+    self.js.client = [make_HTTP_compliant(name)];
 
     /// CSS
     var css_concat = "";
