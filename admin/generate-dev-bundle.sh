@@ -43,7 +43,8 @@ elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
     command -v tar >/dev/null 2>&1 || { echo >&2 "I require 'tar' but it's not installed. Aborting."; exit 1; }
 
     # XXX Can be adapted to support both 32-bit and 64-bit, currently supports only 32-bit (2 GB memory limit).
-    MONGO_NAME="mongodb-win32-i386-2.2.0"
+    # XXX Versions in 2.2.x do not work on Windows XP, since 2.0.x nightly works there we're using 2.0.8 for now.
+    MONGO_NAME="mongodb-win32-i386-2.0.8"
     MONGO_URL="http://downloads.mongodb.org/win32/${MONGO_NAME}.zip"
 else
     echo "This OS not yet supported"
