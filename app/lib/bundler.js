@@ -288,8 +288,6 @@ var Bundle = function () {
           if (w === "client" || w === "server") {
             var proper_path = w === "client" ? make_HTTP_compliant(options.path) : options.path;
 
-            console.log(proper_path)
-
             self.files[w][proper_path] = data;
             self.js[w].push(proper_path);
           } else {
@@ -510,7 +508,7 @@ _.extend(Bundle.prototype, {
         exec('mklink /J "' + path.join(build_path, 'server', 'node_modules') + '" "' + process.env.NODE_PATH + '"');
       } else
         fs.symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
-                       path.join(build_path, 'server', 'node_modules'), 'dir');
+                       path.join(build_path, 'server', 'node_modules'));
     }
     else if (dev_bundle_mode === "copy")
       files.cp_r((process.platform !== "win32" ? path.join(files.get_dev_bundle(), 'lib', 'node_modules') : process.env.NODE_PATH),
