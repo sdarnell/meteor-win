@@ -99,14 +99,17 @@ var bundle_and_deploy = function (site, app_dir, opt_debug, opt_tests,
   var err = '';
   tarTest.on('exit', function (code) {
     if (code === 127 && process.platform === "win32")
-      err = '\nError deploying application:\n\nDeplying from the Windows command line is not yet supported, please use something like Git Bash for Windows instead.\n\nYou can obtain this from: http://git-scm.com/downloads';
-
+    {
+      process.stderr.write('\nError deploying application:\n\n');
+      process.stderr.write('Deploying from the Windows command line is not supported out of the box,\n');
+      process.stderr.write('you can do this if you install the MSYS base system with tar and gzip;\n');
+      process.stderr.write('or use something like Git Bash for Windows instead. You can find the MSYS base system at\n');
+      process.stderr.write('http://sourceforge.net/projects/mingw/files/Installer/mingw-get-inst/mingw-get-inst-20120426\n');
+      process.stderr.write('and you can find Git Bash for Windows at http://git-scm.com/downloads');
+      process.exit(1);
+    }
     var rpc = meteor_rpc('deploy', 'POST', site, opts, function (err, body) {
-      if (err && process.platform === "win32") {
-        process.stderr.write(err);
-        process.exit(1);
-      }
-      else {
+      if (err) {
         var errorMessage = (body || ("Connection error (" + err.message + ")"));
         process.stderr.write("\nError deploying application: " + errorMessage + "\n");
         process.exit(1);
