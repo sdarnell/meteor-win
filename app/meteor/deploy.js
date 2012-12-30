@@ -108,7 +108,7 @@ var bundle_and_deploy = function (site, app_dir, opt_debug, opt_tests,
       process.stderr.write('and you can find Git Bash for Windows at http://git-scm.com/downloads');
       process.exit(1);
     }
-    var rpc = meteor_rpc('deploy', 'POST', site, opts, function (err, body) {
+    var rpc_callback = function (err, body) {
       if (err) {
         var errorMessage = (body || ("Connection error (" + err.message + ")"));
         process.stderr.write("\nError deploying application: " + errorMessage + "\n");
@@ -141,7 +141,7 @@ var bundle_and_deploy = function (site, app_dir, opt_debug, opt_tests,
         if (process.platform === "win32")
           process.exit(0);
       }
-    });
+    };
 
     var tar = spawn('tar', ['czf', '-', 'bundle'], {cwd: build_dir});
     var rpc = meteor_rpc('deploy', 'POST', site, opts, rpc_callback);
