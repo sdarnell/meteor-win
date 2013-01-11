@@ -1,6 +1,6 @@
 var fs = require("fs");
 var path = require('path');
-var _ = require(path.join(__dirname, 'third', 'underscore.js'));
+var _ = require('underscore');
 var exec = require('child_process').exec;
 
 var files = module.exports = {

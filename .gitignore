@@ -9,3 +9,6 @@ Meteor.wixpdb
 \#*\#
 .\#*
 .idea
+*.iml
+*.sublime-project
+*.sublime-workspace

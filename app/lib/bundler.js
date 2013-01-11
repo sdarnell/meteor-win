@@ -31,7 +31,7 @@ var crypto = require('crypto');
 var fs = require('fs');
 var uglify = require('uglify-js');
 var cleanCSS = require('clean-css');
-var _ = require(path.join(__dirname, 'third', 'underscore.js'));
+var _ = require('underscore');
 var exec = require('child_process').exec;
 
 // files to ignore when bundling. node has no globs, so use regexps
@@ -149,7 +149,7 @@ _.extend(PackageInstance.prototype, {
   // should be the extension of the file without a leading dot.)
   get_source_handler: function (extension) {
     var self = this;
-    var candidates = []
+    var candidates = [];
 
     if (extension in self.pkg.extensions)
       candidates.push(self.pkg.extensions[extension]);
@@ -283,7 +283,7 @@ var Bundle = function () {
       _.each(where, function (w) {
         if (options.type === "js") {
           if (!options.path)
-            throw new Error("Must specify path")
+            throw new Error("Must specify path");
 
           if (w === "client" || w === "server") {
             var proper_path = w === "client" ? make_HTTP_compliant(options.path) : options.path;
@@ -369,8 +369,8 @@ _.extend(Bundle.prototype, {
     // XXX detect circular dependencies and print an error. (not sure
     // what the current code will do)
 
-    if (pkg.on_use)
-      pkg.on_use(inst.api, where);
+    if (pkg.on_use_handler)
+      pkg.on_use_handler(inst.api, where);
   },
 
   include_tests: function (pkg) {
@@ -380,8 +380,8 @@ _.extend(Bundle.prototype, {
     self.tests_included[pkg.id] = true;
 
     var inst = self._get_instance(pkg);
-    if (inst.pkg.on_test)
-      inst.pkg.on_test(inst.api);
+    if (inst.pkg.on_test_handler)
+      inst.pkg.on_test_handler(inst.api);
   },
 
   // Minify the bundle
