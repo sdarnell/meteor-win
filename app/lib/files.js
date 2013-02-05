@@ -238,6 +238,60 @@ var files = module.exports = {
 
   // Like rm -r.
   rm_recursive: function (p) {
+    var p_win32 = p.replace(/\//g, '\\');
+    var p_unix = p.replace(/\\/g, '/');
+
+    function p_exists() {
+      return fs.existsSync(p_unix);
+    }
+
+    function win32_rmdir_retry(retries, wait) {
+      var start, i, attempt;
+
+      // In win32, Node's exec() uses cmd.exe as such:
+      // file = 'cmd.exe';
+      // args = ['/s', '/c', '"' + command + '"'];
+      // We are mindful of this when running rmdir from git bash or cmd:
+      if (process.env && process.env.MSYSTEM && process.env.MSYSTEM === "MINGW32") {
+        // Create a temporary batch file for us to run using cmd.exe, launched from within git bash.
+        // This is necessary due to the fact that we are running two commands: cmd and rmdir. Since spawn()
+        // escapes the " character in the [arguments], we have no choice but to use a batch file approach.
+        // Also, running in a batch file has some kind of side benefit in that what appear to be locked files
+        // have a chance to unlock.
+        attempt = function () {
+          var now = new Date();
+          var temp_cmd = [process.env.TEMP.replace(/\//g, '\\'), "\\", now.getYear(), now.getMonth(), now.getDate(), "-", process.pid, "-", (Math.random() * 0x100000000 + 1).toString(36), ".cmd"].join("");
+          fs.writeFileSync(temp_cmd, '@rmdir /s /q "' + p_win32.replace(/\\*$/g, '') + '"');
+          spawn(process.env.COMSPEC, ['/s', '/c', temp_cmd], {stdio: "inherit"}).on("exit", function (code) {
+            fs.unlink(temp_cmd);
+          });
+        }
+      } else {
+        attempt = function () {
+          // When in the normal command prompt, run rmdir directly
+          var cmd = 'rmdir /s /q "' + p_win32.replace(/\\*$/g, '') + '"';
+          exec(cmd, function (error, stdout, stderr) {
+            if (error) {
+              console.log("exec error:", error, stdout, stderr);
+            }
+          });
+        }
+      }
+
+      // Retry the rmdir x times or until it succeeds
+      for (i = 0; i < retries; i++) {
+        attempt();        
+
+        // Force blocking
+        start = new Date().getTime();
+        while (p_exists() && new Date().getTime() < start + wait);
+
+        if (!p_exists()) return true;
+      }
+
+      return false;
+    }
+
     try {
       // the l in lstat is critical -- we want to remove symbolic
       // links, not what they point to
@@ -248,25 +302,24 @@ var files = module.exports = {
       throw e;
     }
 
-    if (stat.isDirectory() && !p.match(/node_modules/g)) {
-      _.each(fs.readdirSync(p), function (file) {
-        file = path.join(p, file);
-        files.rm_recursive(file);
-      });
-      fs.rmdirSync(p);
-    } else
-      if (process.platform === "win32" && p.match(/node_modules/g)) {
+    if (stat.isDirectory()) {
+      if (process.platform === "win32") {
         // Make sure that symbolic links are properly removed on Windows, regardless of using bash / cmd.
-        try { fs.unlinkSync(p); } catch (e) {}
-        exec('cmd /c "del /Q ^"' + p.replace(/\//g, '\\').replace(/\/*$/g, '') + '^"" || cmd /c "rmdir /Q ^"' + p.replace(/\//g, '\\').replace(/\\*$/g, '') + '^"" || rm "' + p.replace(/\\/g, '/').replace(/^([a-zA-Z]):/g, '/$1').replace(/\/*$/g, '') + '"');
-
-        // XXX Sadly, the only way to somewhat ensure the above was done in a synchroneous way.
-        var startTime = new Date().getTime();
-        while (fs.existsSync(p.replace(/\\/g, '/')) && new Date().getTime() < startTime + 5000);
+        // For this reason, we are using rmdir /s /q, which is safe against junctions.
+        if (!win32_rmdir_retry(5, 5000)) {
+          throw new Error("Win32: unable to recursively remove " + p_win32);
+        }
+      } else {
+        _.each(fs.readdirSync(p), function (file) {
+          file = path.join(p, file);
+          files.rm_recursive(file);
+        });
+        fs.rmdirSync(p);
       }
-      else
-        // Removing any other files on any OS, as well as symbolic links on Linux.
-        fs.unlinkSync(p);
+    } else {
+      // Removing any other files on any OS, as well as symbolic links on Linux.
+      fs.unlinkSync(p);
+    }
   },
 
   // like mkdir -p. if it returns true, the item is a directory (even
