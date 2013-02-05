@@ -1,7 +1,9 @@
 var fs = require("fs");
 var path = require('path');
 var _ = require('underscore');
-var exec = require('child_process').exec;
+var child_process = require('child_process');
+var exec = child_process.exec;
+var spawn = child_process.spawn;
 
 var files = module.exports = {
   // A sort comparator to order files into load order.
