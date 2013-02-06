@@ -71,7 +71,11 @@
     return subclass;
   }
 
-  Shark.Branch = function () {};
+  Shark.Branch = function () {
+    this.firstNode = null;
+    this.lastNode = null;
+    this.children = new OrderedDict();
+  };
   Shark.Branch.extend = extendThis;
 
 })();

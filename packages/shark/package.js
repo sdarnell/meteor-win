@@ -4,10 +4,12 @@ Package.describe({
 });
 
 Package.on_use(function (api) {
-  api.use(['underscore', 'uuid', 'domutils', 'liverange', 'universal-events'],
+  api.use(['underscore', 'uuid', 'domutils',
+           'ordered-dict',
+           'universal-events'],
           'client');
 
-  api.add_files(['shark.js'], 'client');
+  api.add_files(['branch.js', 'shark.js'], 'client');
 });
 
 Package.on_test(function (api) {
