@@ -74,8 +74,26 @@ Shark.build = function (fn, controllerClass) {
     return b.firstNode.parentNode; // DocumentFragment
 };
 
+Shark.findBranch = function (node) {
+  while (node && ! node._Spark_Branch)
+    node = node.parentNode;
+
+  return node && node._Spark_Branch || null;
+};
+
 Shark.rebuild = function (branch, fn) {
   var state = new Shark.BuildState(branch);
+
+  // is the focused element in one of our child branches?
+  // if so, determine the branch, as a hint to patching.
+  var focusBranch = document.activeElement &&
+        Shark.findBranch(document.activeElement);
+  while (focusBranch && focusBranch.parent !== branch)
+    focusBranch = focusBranch.parent;
+  // If focusBranch comes out truthy, it must be one of our
+  // children.  Determine its label.
+  var focusBranchLabel = focusBranch ?
+        branch.findChild(focusBranch) : null;
 
   var html = Shark._currentBuild.withValue(state, function () {
     return Shark._currentBranch.withValue(branch, function () {
@@ -102,10 +120,8 @@ Shark.rebuild = function (branch, fn) {
       var frag = child.firstNode.parentNode;
       comment.parentNode.replaceChild(frag, comment);
       branch.children.append(label, child);
+      child.parent = branch;
     });
-
-    for (var n = frag.firstChild; n; n = n.nextSibling)
-      n._Spark_Branch = (n._Spark_Branch || branch);
 
     branch.firstNode = frag.firstChild;
     branch.lastNode = frag.lastChild;
@@ -119,15 +135,25 @@ Shark.rebuild = function (branch, fn) {
 
     var newBounds = Shark._patch(branch, frag,
                                  branch.children, state.newChildren,
-                                 commentDict);
+                                 commentDict, focusBranchLabel);
     branch.firstNode = newBounds[0];
     branch.lastNode = newBounds[1];
 
     // XXX use Spark.edit
   }
+
+  // spray '_Spark_Branch' property to nodes that don't have it, to
+  // mark innermost Branch containing a node.
+  for (var n = branch.firstNode, tooFar = branch.lastNode.nextSibling;
+       n && n !== tooFar;
+       n = n.nextSibling)
+    n._Spark_Branch = (n._Spark_Branch || branch);
 };
 
 Shark.branch = function (label, fn, controllerClass) {
+  if (! label || (typeof label) !== "string")
+    throw new Error("Spark.branch requires a non-empty string label.");
+
   var state = Shark._currentBuild.get();
 
   if (state) {
@@ -164,8 +190,10 @@ Shark.branch = function (label, fn, controllerClass) {
     // the tree for the first time and things are much simpler.
     var child = new (controllerClass || Shark.Branch)();
     var currentBranch = Shark._currentBranch.get();
-    if (currentBranch)
+    if (currentBranch) {
       currentBranch.children.append(label, child);
+      child.parent = currentBranch;
+    }
     return Shark._currentBranch.withValue(child, function () {
       return fn();
     });
@@ -181,10 +209,92 @@ Shark.branch = function (label, fn, controllerClass) {
 // comment nodes, and actually provides the correct set of children
 // and order.
 Shark._patch = function (oldBranch, newFrag,
-                         oldChildren, newChildren, commentDict) {
+                         oldChildren, newChildren, commentDict,
+                         focusBranchLabel) {
 
-  // XXXXX
+  // There are four types of child Branches we might encounter:
+  //
+  // - dead -- label is only in oldChildren
+  // - novel -- label is only in newChildren / commentDict
+  // - rebuilt/unmoved -- label in both; Branch was rebuilt in place;
+  //       we are able to leave it in the DOM in place and not
+  //       move or reparent it.
+  // - rebuilt/moved -- label in both; Branch was rebuilt in place;
+  //       the DOM nodes must be moved
+  //
+  // We will have to move some rebuilt branches if their order changes
+  // between old and new, or if the names of their enclosing tags
+  // change, or if two rebuilt branches come to share a different
+  // number of ancestors (e.g. they were in the same DIV, and now they
+  // are in different DIVs).
 
+
+  var unmovedChildLabel = null;
+  // if the branch containing the focused DOM element can be considered
+  // "rebuilt/unmoved", do it.
+  if (focusBranchLabel &&
+      oldChildren.has(focusBranchLabel) &&
+      commentDict.has(focusBranchLabel) &&
+      Shark._compareRelationships(oldBranch.firstNode.parentNode,
+                                  oldChildren.get(focusBranchLabel).firstNode.parentNode,
+                                  newFrag,
+                                  commentDict.get(focusBranchLabel))) {
+    unmovedChildLabel = focusBranchLabel;
+  }
+
+  // XXXXXXXXXXXXXXXXXXX
+  //
+  // - find all unmoved branches using _compareRelationships
+  // - move stuff around / patch stuff up
+
+  // XXX be sure to set parent pointers
+};
+
+Shark._commonAncestor = function (a, b) {
+  if (a === b)
+    return a;
+
+  var x = a;
+  while (x && ! (DomUtils.nodeContains(x, b) || x === b));
+    x = x.parentNode;
+
+  return x || null;
+};
+
+// For any nodes A and B in the same tree with nearest common ancestor X,
+// relationship(A, B) is defined as the depth of A below X (an integer)
+// followed by the chain of tag names under X including B
+// (a possibly empty list of strings).  For example, if the relationship
+// is [3, "DIV", "SPAN"], that means you can get from A to B by going
+// up the tree three times, then down to a "DIV", then down to a "SPAN".
+//
+// This function tests whether relationship(from1, to1) is equal to
+// relationship(from2, to2).
+Shark._compareRelationships = function (from1, to1, from2, to2) {
+
+  var commonAncestor1 = Shark._commonAncestor(from1, to1);
+  var commonAncestor2 = Shark._commonAncestor(from2, to2);
+
+  // With pointers x/y walking from from1/2 up to commonAncestor1/2,
+  // see if one hits before the other.
+  for(var x = from1, y = from2;
+      x !== commonAncestor1 || y !== commonAncestor2;
+      x = x.parentNode, y = y.parentNode)
+    if (x === commonAncestor1 || y === commonAncestor2)
+      return false;
+
+  // With pointers x/y walking from to1/2 up to commonAncestor1/2,
+  // see if they traverse nodes with the same tagNames.
+  for(var x = to1, y = to2;
+      x !== commonAncestor1 || y !== commonAncestor2;
+      x = x.parentNode, y = y.parentNode) {
+    if (x === commonAncestor1 || y === commonAncestor2)
+      return false;
+    if (x.tagName !== y.tagName)
+      return false;
+  }
+
+  return true;
 };
 
 

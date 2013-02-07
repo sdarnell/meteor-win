@@ -72,6 +72,7 @@
   }
 
   Shark.Branch = function () {
+    this.parent = null;
     this.firstNode = null;
     this.lastNode = null;
     this.children = new OrderedDict();
@@ -90,4 +91,17 @@
 
     return false;
   };
+
+  // returns label for a child Branch
+  Shark.Branch.prototype.findChild = function (child) {
+    var label = null;
+    this.children.forEach(function (v, k) {
+      if (v === child) {
+        label = k;
+        return OrderedDict.BREAK;
+      }
+    });
+    return label;
+  };
+
 })();
