@@ -19,7 +19,9 @@ Shark._currentBranch = Shark._makeSpecial(null); // type: Branch
 
 Shark.BuildState = function (branch) {
   this.branch = branch ; // Branch
-  this.newChildren = new OrderedDict();
+  // XXX order of newChildren isn't actually used; we get order from where
+  // things ended up in the DOM when building.
+  this.newChildren = new OrderedDict(); // label -> Branch
   this.placeholders = {}; // comment string -> label
 };
 
@@ -36,24 +38,28 @@ _.extend(
       return placeholder;
     },
 
-    replacePlaceholders: function (root) {
+    findPlaceholders: function (root, optDict) {
+      // Walk the DOM from `root` and build an OrderedDict of
+      // the placeholder comments that we recognize.
+
+      // label -> comment node
+      var dict = (optDict || new OrderedDict());
+
       if (root.nodeType === 8) { // COMMENT
-        var comment = root.nodeValue;
-        if (this.placeholders.hasOwnProperty(comment)) {
-          var child = this.newChildren.get(this.placeholders[comment]);
-          if (child) {
-            // replace comment with newly built Branch's fragment
-            var frag = child.firstNode.parentNode;
-            root.parentNode.replaceChild(frag, root);
-          }
+        var commentValue = root.nodeValue;
+        if (this.placeholders.hasOwnProperty(commentValue)) {
+          var label = this.placeholders[commentValue];
+          if (this.newChildren.has(label))
+            dict.append(label, root);
         }
       }
       if (root.firstChild) {
         for(var n = root.firstChild, next; n; n = next) {
           next = n.nextSibling;
-          this.replacePlaceholders(n);
+          this.findPlaceholders(n, dict);
         }
       }
+      return dict;
     }
   });
 
@@ -79,20 +85,45 @@ Shark.rebuild = function (branch, fn) {
 
   var frag = DomUtils.htmlToFragment(html);
 
+  if (! frag.firstChild)
+    // give frag a child we can point to (comment node)
+    frag.appendChild(document.createComment(""));
+
+  var newChildren = state.newChildren;
+  var commentDict = state.findPlaceholders(frag);
+
+  // commentDict has a subset of newChildren's keys, potentially
+  // in a different order.
+
   if (! branch.firstNode) {
     // branch's first build
+    commentDict.forEach(function (comment, label) {
+      var child = newChildren.get(label);
+      var frag = child.firstNode.parentNode;
+      comment.parentNode.replaceChild(frag, comment);
+      branch.children.append(label, child);
+    });
 
-    if (! frag.firstChild)
-      // give frag a child we can point to (comment node)
-      frag.appendChild(document.createComment(""));
-
-    state.replacePlaceholders(frag);
+    for (var n = frag.firstChild; n; n = n.nextSibling)
+      n._Spark_Branch = (n._Spark_Branch || branch);
 
     branch.firstNode = frag.firstChild;
     branch.lastNode = frag.lastChild;
-    branch.children = state.newChildren; // overwrite old dict
   } else {
-    // XXX the real rebuild case
+    // We want to rebuild `branch.firstNode .. branch.lastNode`
+    // to look like `frag` with placeholders replaced with
+    // newChildren.  The new children whose labels matched old
+    // children (`branch.children`) have already been rebuilt
+    // in place, and we'd like to preserve them if possible.
+    // The others have been built into DocumentFragments.
+
+    var newBounds = Shark._patch(branch, frag,
+                                 branch.children, state.newChildren,
+                                 commentDict);
+    branch.firstNode = newBounds[0];
+    branch.lastNode = newBounds[1];
+
+    // XXX use Spark.edit
   }
 };
 
@@ -122,7 +153,7 @@ Shark.branch = function (label, fn, controllerClass) {
       child = Shark.build(fn, controllerClass || Shark.Branch);
     }
 
-    newChildren.putBefore(label, child, null); // append
+    newChildren.append(label, child);
 
     return "<!--" + state.newPlaceholder(label) + "-->";
 
@@ -134,11 +165,26 @@ Shark.branch = function (label, fn, controllerClass) {
     var child = new (controllerClass || Shark.Branch)();
     var currentBranch = Shark._currentBranch.get();
     if (currentBranch)
-      currentBranch.children.putBefore(label, child, null); // append
+      currentBranch.children.append(label, child);
     return Shark._currentBranch.withValue(child, function () {
       return fn();
     });
   }
+};
+
+// Make the DOM between oldFirstNode and oldLastNode look like
+// newFrag, if newFrag's placeholders were replaced with
+// newChildren.  The new children who share labels with old children
+// have already been rebuilt in place, and we'd like to leave them
+// without reparenting them, if possible.
+// `commentDict` provides look-up and traversal of the placeholder
+// comment nodes, and actually provides the correct set of children
+// and order.
+Shark._patch = function (oldBranch, newFrag,
+                         oldChildren, newChildren, commentDict) {
+
+  // XXXXX
+
 };
 
 

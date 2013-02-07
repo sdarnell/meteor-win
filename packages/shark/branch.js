@@ -78,4 +78,16 @@
   };
   Shark.Branch.extend = extendThis;
 
+  Shark.Branch.prototype.containsNode = function (node) {
+    if (! (this.firstNode && this.lastNode))
+      return false;
+
+    for (var n = this.firstNode, tooFar = this.lastNode.nextSibling;
+         n && n !== tooFar;
+         n = n.nextSibling)
+      if (n === node || DomUtils.nodeContains(n, node))
+        return true;
+
+    return false;
+  };
 })();

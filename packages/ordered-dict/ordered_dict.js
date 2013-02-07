@@ -6,7 +6,6 @@
 
   // The implementation is a dictionary that contains nodes of a doubly-linked
   // list as its values.
-  var k = function (key) { return " " + key; };
 
   // constructs a new element struct
   // next and prev are whole elements, not keys.
@@ -23,18 +22,29 @@
     self._dict = {};
     self._first = null;
     self._last = null;
-    _.each(arguments, function (kv) {
+    self._size = 0;
+    var args = _.toArray(arguments);
+    self._stringify = function (x) { return x; };
+    if (typeof args[0] === 'function')
+      self._stringify = args.shift();
+    _.each(args, function (kv) {
       self.putBefore(kv[0], kv[1], null);
     });
   };
 
   _.extend(OrderedDict.prototype, {
+    // the "prefix keys with a space" thing comes from here
+    // https://github.com/documentcloud/underscore/issues/376#issuecomment-2815649
+    _k: function (key) { return " " + this._stringify(key); },
 
     empty: function () {
       var self = this;
       return !self._first;
     },
-
+    size: function () {
+      var self = this;
+      return self._size;
+    },
     _linkEltIn: function (elt) {
       var self = this;
       if (!elt.next) {
@@ -65,19 +75,29 @@
     putBefore: function (key, item, before) {
       var self = this;
       var elt = before ?
-            element(key, item, self._dict[k(before)]) :
+            element(key, item, self._dict[self._k(before)]) :
             element(key, item, null);
       if (elt.next === undefined)
         throw new Error("could not find item to put this one before");
       self._linkEltIn(elt);
-      self._dict[k(key)] = elt;
+      self._dict[self._k(key)] = elt;
+      self._size++;
+    },
+    push: function (key, item) {
+      var self = this;
+      self.putBefore(key, item, null);
+    },
+    pop: function () {
+      var self = this;
+      return self.remove(self.last());
     },
     remove: function (key) {
       var self = this;
-      var elt = self._dict[k(key)];
+      var elt = self._dict[self._k(key)];
       if (elt !== undefined) {
         self._linkEltOut(elt);
-        delete self._dict[k(key)];
+        self._size--;
+        delete self._dict[self._k(key)];
         return elt.value;
       } else {
         return undefined;
@@ -86,12 +106,12 @@
     get: function (key) {
       var self = this;
       if (self.has(key))
-          return self._dict[k(key)].value;
+          return self._dict[self._k(key)].value;
       return undefined;
     },
     has: function (key) {
       var self = this;
-      return _.has(self._dict, k(key));
+      return _.has(self._dict, self._k(key));
     },
     // Iterate through the items in this dictionary in order, calling
     // iter(value, key, index) on each one.
@@ -153,8 +173,8 @@
     },
     moveBefore: function (key, before) {
       var self = this;
-      var elt = self._dict[k(key)];
-      var eltBefore = before ? self._dict[k(before)] : null;
+      var elt = self._dict[self._k(key)];
+      var eltBefore = before ? self._dict[self._k(before)] : null;
       if (elt === undefined)
         throw new Error("Item to move is not present");
       if (eltBefore === undefined) {
@@ -173,7 +193,7 @@
       var self = this;
       var ret = null;
       self.forEach(function (v, k, i) {
-        if (k === key) {
+        if (self._k(k) === self._k(key)) {
           ret = i;
           return OrderedDict.BREAK;
         }
@@ -192,5 +212,6 @@
     }
 
   });
+OrderedDict.prototype.append = OrderedDict.prototype.push;
 OrderedDict.BREAK = {break: true};
 })();

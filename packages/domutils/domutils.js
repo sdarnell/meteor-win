@@ -263,6 +263,7 @@ DomUtils = {};
   };
 
   // Returns true if element a contains node b and is not node b.
+  // Does only native searching.
   DomUtils.elementContains = function (a, b) {
     if (a.nodeType !== 1) /* ELEMENT */
       return false;
@@ -284,6 +285,21 @@ DomUtils = {};
 
       return a.contains(b);
     }
+  };
+
+  // Returns true if node a contains node b and is not node b.
+  DomUtils.nodeContains = function (a, b) {
+    if (a.nodeType === 1) // ELEMENT
+      return DomUtils.elementContains(a, b);
+
+    if (a === b || ! a.firstChild)
+      return false;
+
+    for(var n = a.firstChild; n; n = n.nextSibling)
+      if (n === b || DomUtils.nodeContains(n, b))
+        return true;
+
+    return false;
   };
 
   // Returns an array containing the children of contextNode that
