@@ -61,6 +61,9 @@ cd "$DIR"
 chmod 755 .
 umask 022
 
+# When upgrading node versions, also update the values of MIN_NODE_VERSION at
+# the top of app/meteor/meteor.js and app/server/server.js.
+NODE_VERSION=v0.8.18
 if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
     # XXX Only install node if it is not yet present.
     #     To be able to install Node.js locally instead of to Program Files, we need to wait for https://github.com/joyent/node/issues/2279.
@@ -69,15 +72,15 @@ if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
         echo.
 
         # Make sure we are on a version that passes the node-fibers tests on Windows.
-        curl -O http://nodejs.org/dist/v0.8.11/node-v0.8.11-x86.msi
+        curl -O http://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-x86.msi
 
         echo.
         echo INSTALLING NODE.JS
         echo.
 
         # Let's install node.js (includes v8 and npm).
-        $COMSPEC \/c node-v0.8.11-x86.msi\ \/qr; true
-        rm node-v0.8.11-x86.msi
+        $COMSPEC \/c node-$NODE_VERSION-x86.msi\ \/qr; true
+        rm node-$NODE_VERSION-x86.msi
 
         # Make sure we can see node and npm from now on.
         export PATH="/c/Program Files (x86)/nodejs:/c/Program Files/nodejs:$PATH"
@@ -90,9 +93,7 @@ else
 
     git clone git://github.com/joyent/node.git
     cd node
-    # When upgrading node versions, also update the values of MIN_NODE_VERSION at
-    # the top of app/meteor/meteor.js and app/server/server.js.
-    git checkout v0.8.18
+    git checkout $NODE_VERSION
 
     ./configure --prefix="$DIR"
     make -j4
