@@ -36,7 +36,6 @@ elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
 
     # We check that all of the required tools are present for people that want to make a dev bundle on Windows.
     command -v git >/dev/null 2>&1 || { echo >&2 "I require 'git' but it's not installed. Aborting."; exit 1; }
-    command -v mktemp >/dev/null 2>&1 || { echo >&2 "I require 'mktemp' but it's not installed. Aborting."; exit 1; }
     command -v curl >/dev/null 2>&1 || { echo >&2 "I require 'curl' but it's not installed. Aborting."; exit 1; }
     command -v unzip >/dev/null 2>&1 || { echo >&2 "I require 'unzip' but it's not installed. Aborting."; exit 1; }
     command -v tar >/dev/null 2>&1 || { echo >&2 "I require 'tar' but it's not installed. Aborting."; exit 1; }
@@ -54,7 +53,12 @@ fi
 cd `dirname $0`/..
 TARGET_DIR=`pwd`
 
+if command -v mktemp >/dev/null 2>&1 ; then
 DIR=`mktemp -d -t generate-dev-bundle-XXXXXXXX`
+else
+DIR="${TMPDIR-/tmp}/generate-dev-bundle-$RANDOM$RANDOM"
+mkdir "$DIR"
+fi
 trap 'rm -rf "$DIR" >/dev/null 2>&1' 0
 
 cd "$DIR"
