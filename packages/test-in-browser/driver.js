@@ -35,6 +35,14 @@ Template.progressBar.percentPass = function () {
   return 100*passedCount/totalCount;
 };
 
+Template.progressBar.totalCount = function () {
+  return totalCount;
+};
+
+Template.progressBar.passedCount = function () {
+  return passedCount;
+};
+
 Template.progressBar.percentFail = function () {
   countDeps.addCurrentContext();
   if (totalCount === 0)

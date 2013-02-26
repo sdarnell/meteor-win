@@ -708,8 +708,11 @@ exports.bundle = function (project_dir, output_path, options) {
 
     // Include tests if requested
     if (options.include_tests) {
-      // in the future, let use specify the driver, instead of hardcoding?
-      bundle.use(packages.get('test-in-browser'));
+      if (typeof options.include_tests === 'string') {
+        bundle.use(packages.get(options.include_tests));
+      } else {
+        bundle.use(packages.get('test-in-browser'));
+      }
       bundle.include_tests(project);
     }
 

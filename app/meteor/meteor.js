@@ -129,8 +129,8 @@ Fiber(function () {
       }
 
       var app_dir = path.resolve(require_project("run", true)); // app or package
-
-      var bundle_opts = { no_minify: !new_argv.production, symlink_dev_bundle: true };
+      console.log(new_argv.tests); // undocumented "tests" option chooses package to use as test runner.
+      var bundle_opts = { no_minify: !new_argv.production, symlink_dev_bundle: true, include_tests: new_argv.tests };
       runner.run(app_dir, bundle_opts, new_argv.port, new_argv.once, new_argv.settings);
     }
   });
