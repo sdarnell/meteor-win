@@ -7,7 +7,7 @@ BUNDLE_VERSION=0.2.19
 UNAME=$(uname)
 
 if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
-	ARCH="$(uname -m)"
+	ARCH="i386"
 elif [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
     echo "Sorry, this OS is not supported."
     exit 1
