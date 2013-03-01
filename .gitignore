@@ -12,3 +12,4 @@ Meteor.wixpdb
 *.iml
 *.sublime-project
 *.sublime-workspace
+TAGS
