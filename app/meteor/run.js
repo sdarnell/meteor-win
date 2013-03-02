@@ -564,7 +564,9 @@ exports.run = function (app_dir, bundle_opts, port, once, settingsFile) {
   } else {
     // Otherwise we're running in a package directory, run the tests as
     // the main app (so we get reload watching and such).
-    bundle_opts = _.extend({include_tests: true}, bundle_opts);
+    bundle_opts = _.clone(bundle_opts);
+    if (!bundle_opts.include_tests)
+      bundle_opts.include_tests = true;
   }
 
   var deps_info = null;
@@ -609,7 +611,6 @@ exports.run = function (app_dir, bundle_opts, port, once, settingsFile) {
       kill_server(test_server_handle);
 
     server_log = [];
-
     var errors = bundler.bundle(app_dir, bundle_path, bundle_opts);
 
     var deps_raw;
