@@ -100,13 +100,23 @@
     _.each(bundle.manifest, function (resource) {
       if (resource.where === 'client' &&
           ! Meteor._routePolicy.classify(resource.url)) {
-        manifest += resource.url + "\n";
+        manifest += resource.url;
+        if (resource.url.indexOf('?') === -1)
+          manifest += "?" + resource.hash;
+        manifest += "\n";
       }
     });
     manifest += "\n";
 
     manifest += "FALLBACK:\n";
     manifest += "/ /" + "\n";
+    _.each(bundle.manifest, function (resource) {
+      if (resource.where === 'client' &&
+          ! Meteor._routePolicy.classify(resource.url) &&
+          resource.url.indexOf('?') === -1) {
+        manifest += resource.url + " " + resource.url + "?" + resource.hash + "\n";
+      }
+    });
     manifest += "\n";
 
     manifest += "NETWORK:\n";
