@@ -547,15 +547,11 @@ var ObserveHandle = function (liveResultsSet, callbacks) {
   self._moved = callbacks.moved;
   self._movedBefore = callbacks.movedBefore;
   self._observeHandleId = nextObserveHandleId++;
-  Meteor.Facts && Meteor.Facts.incrementServerFact(
-    "mongo-livedata", "observe-handles", 1);
 };
 ObserveHandle.prototype.stop = function () {
   var self = this;
   self._liveResultsSet._removeObserveHandle(self);
   self._liveResultsSet = null;
-  Meteor.Facts && Meteor.Facts.incrementServerFact(
-    "mongo-livedata", "observe-handles", -1);
 };
 
 _Mongo.prototype._observeChanges = function (
@@ -734,6 +730,8 @@ _.extend(LiveResultsSet.prototype, {
       throw new Error("Call _addFirstObserveHandle before polling!");
 
     self._observeHandles[handle._observeHandleId] = handle;
+    Meteor.Facts && Meteor.Facts.incrementServerFact(
+      "mongo-livedata", "observe-handles", 1);
 
     // Run the first _poll() cycle synchronously (delivering results to the
     // first ObserveHandle).
@@ -849,6 +847,8 @@ _.extend(LiveResultsSet.prototype, {
         throw new Error("Duplicate observe handle ID");
       self._observeHandles[handle._observeHandleId] = handle;
       --self._addHandleTasksScheduledButNotPerformed;
+      Meteor.Facts && Meteor.Facts.incrementServerFact(
+        "mongo-livedata", "observe-handles", 1);
 
       // Send initial adds.
       if (handle._added || handle._addedBefore) {
@@ -877,6 +877,8 @@ _.extend(LiveResultsSet.prototype, {
     if (!_.has(self._observeHandles, handle._observeHandleId))
       throw new Error("Unknown observe handle ID " + handle._observeHandleId);
     delete self._observeHandles[handle._observeHandleId];
+    Meteor.Facts && Meteor.Facts.incrementServerFact(
+      "mongo-livedata", "observe-handles", -1);
 
     if (_.isEmpty(self._observeHandles) &&
         self._addHandleTasksScheduledButNotPerformed === 0) {
