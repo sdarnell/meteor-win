@@ -320,4 +320,31 @@ EJSON.clone = function (v) {
   });
   return ret;
 };
+
+
+EJSON.each = function (obj, iterator, context) {
+  if (!obj)
+    return;
+  if (typeof obj !== 'object')
+    throw new Error("EJSON.each is undefined over " + (typeof obj));
+  if (obj instanceof Array) {
+    for (var i = 0; i < obj.length; i++) {
+      var r = iterator.call(context, obj[i], i);
+      if (r === EJSON.BREAK)
+        break;
+    }
+  } else {
+    // specifically not using _.each() because I want to expose EJSON.BREAK
+    for (var key in obj) {
+      if (_.has(obj, key)){
+        r = iterator.call(context, obj[key], key);
+        if (r === EJSON.BREAK)
+          break;
+      }
+    }
+  }
+};
+
+EJSON.BREAK = {};
+
 })();
