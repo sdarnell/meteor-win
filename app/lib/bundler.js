@@ -43,6 +43,7 @@ var fs = require('fs');
 var uglify = require('uglify-js');
 var cleanCSS = require('clean-css');
 var _ = require('underscore');
+var exec = require('child_process').exec;
 
 // files to ignore when bundling. node has no globs, so use regexps
 var ignore_files = [
@@ -51,6 +52,11 @@ var ignore_files = [
     /^\.meteor$/, /* avoids scanning N^2 files when bundling all packages */
     /^\.git$/ /* often has too many files to watch */
 ];
+
+// Make the relative URLs HTTP compliant my making sure they always use forward slashes instead of backward slashes.
+var make_HTTP_compliant = function (file) {
+  return file.replace(/\\/g, '/');
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // PackageInstance
@@ -302,8 +308,10 @@ var Bundle = function () {
             throw new Error("Must specify path");
 
           if (w === "client" || w === "server") {
-            self.files[w][options.path] = data;
-            self.js[w].push(options.path);
+            var proper_path = w === "client" ? make_HTTP_compliant(options.path) : options.path;
+
+            self.files[w][proper_path] = data;
+            self.js[w].push(proper_path);
           } else {
             throw new Error("Invalid environment");
           }
@@ -314,9 +322,12 @@ var Bundle = function () {
             // that appear in the server directories in an app tree
             return;
           if (!options.path)
-            throw new Error("Must specify path");
-          self.files.client[options.path] = data;
-          self.css.push(options.path);
+            throw new Error("Must specify path")
+
+          var proper_path = w === "client" ? make_HTTP_compliant(options.path) : options.path;
+
+          self.files.client[proper_path] = data;
+          self.css.push(proper_path);
         } else if (options.type === "head" || options.type === "body") {
           if (w !== "client")
             throw new Error("HTML segments can only go to the client");
@@ -412,7 +423,7 @@ _.extend(Bundle.prototype, {
       var name = '/' + hash + '.' + type;
       self.files.client_cacheable[name] = contents;
       self.manifest.push({
-        path: 'static_cacheable' + name,
+        path: 'static_cacheable' + make_HTTP_compliant(name),
         where: 'client',
         type: type,
         cacheable: true,
@@ -511,6 +522,7 @@ _.extend(Bundle.prototype, {
     // XXX cleaner error handling. don't make the humans read an
     // exception (and, make suitable for use in automated systems)
     files.rm_recursive(build_path);
+    files.rm_recursive(output_path);
     files.mkdir_p(build_path, 0755);
 
     // --- Core runner code ---
@@ -521,11 +533,17 @@ _.extend(Bundle.prototype, {
 
     // --- Third party dependencies ---
 
-    if (dev_bundle_mode === "symlink")
-      fs.symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
-                     path.join(build_path, 'server', 'node_modules'));
+    if (dev_bundle_mode === "symlink") {
+      if (process.platform === "win32") {
+        // Execute both ways of symlinking files, one of the two will pass.
+        exec('ln -s "' + process.env.NODE_PATH + '" "' + path.join(build_path, 'server', 'node_modules') + '"');
+        exec('mklink /J "' + path.join(build_path, 'server', 'node_modules') + '" "' + process.env.NODE_PATH + '"');
+      } else
+        fs.symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
+                       path.join(build_path, 'server', 'node_modules'));
+    }
     else if (dev_bundle_mode === "copy")
-      files.cp_r(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
+      files.cp_r((process.platform !== "win32" ? path.join(files.get_dev_bundle(), 'lib', 'node_modules') : process.env.NODE_PATH),
                  path.join(build_path, 'server', 'node_modules'),
                  {ignore: ignore_files});
     else
@@ -617,7 +635,9 @@ _.extend(Bundle.prototype, {
     for (var rel_path in self.files.server) {
       var path_in_bundle = path.join('app', rel_path);
       var full_path = path.join(build_path, path_in_bundle);
-      app_json.load.push(path_in_bundle);
+      // XXX Since paths are hardcoded in the file, we need the slashes to be /
+      // so they work cross-platform after bundling and unpacking or deploying.
+      app_json.load.push(path_in_bundle.replace(/\\/g, '/'));
       files.mkdir_p(path.dirname(full_path), 0755);
       fs.writeFileSync(full_path, self.files.server[rel_path]);
     }
@@ -677,7 +697,6 @@ _.extend(Bundle.prototype, {
     // --- Move into place ---
 
     // XXX cleaner error handling (no exceptions)
-    files.rm_recursive(output_path);
     fs.renameSync(build_path, output_path);
   }
 

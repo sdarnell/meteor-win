@@ -116,59 +116,77 @@ var bundle_and_deploy = function (options) {
   // When it hits the wire, all these opts will be URL-encoded.
   if (settings !== undefined) rpcOptions.settings = settings;
 
-  var tar = child_process.spawn(
-    'tar', ['czf', '-', 'bundle'], {cwd: build_dir});
-
-  var rpc = meteor_rpc('deploy', 'POST', site, rpcOptions, function (err, body) {
-    if (err) {
-      var errorMessage = (body || ("Connection error (" + err.message + ")"));
-      process.stderr.write("\nError deploying application: " + errorMessage + "\n");
+  var spawn = require('child_process').spawn;
+  var tarTest = spawn('tar', ['--help'], {cwd: build_dir});
+  var err = '';
+  tarTest.on('exit', function (code) {
+    if (code === 127 && process.platform === "win32")
+    {
+      process.stderr.write('\nError deploying application:\n\n');
+      process.stderr.write('Deploying from the Windows command line is not supported out of the box,\n');
+      process.stderr.write('you can do this if you install the MSYS base system with tar and gzip;\n');
+      process.stderr.write('or use something like Git Bash for Windows instead. You can find the MSYS base system at\n');
+      process.stderr.write('http://sourceforge.net/projects/mingw/files/Installer/mingw-get-inst/mingw-get-inst-20120426\n');
+      process.stderr.write('and you can find Git Bash for Windows at http://git-scm.com/downloads');
       process.exit(1);
     }
+    var rpc_callback = function (err, body) {
+      if (err) {
+        var errorMessage = (body || ("Connection error (" + err.message + ")"));
+        process.stderr.write("\nError deploying application: " + errorMessage + "\n");
+        process.exit(1);
+      }
 
-    process.stdout.write('done.\n');
+      process.stdout.write('done.\n');
+      var hostname = null;
+      var response = null;
+      try {
+        response = JSON.parse(body);
+      } catch (e) {
+        // ... leave null
+      }
+      if (response && response.url) {
+        var url = require('url').parse(response.url);
+        if (url && url.hostname)
+          hostname = url.hostname;
+      }
 
-    var hostname = null;
-    var response = null;
-    try {
-      response = JSON.parse(body);
-    } catch (e) {
-      // ... leave null
-    }
-    if (response && response.url) {
-      var url = require('url').parse(response.url);
-      if (url && url.hostname)
-        hostname = url.hostname;
-    }
+      if (!hostname) {
+        process.stdout.write('Error receiving hostname from deploy server.\n');
+        process.exit(1);
+      }
 
-    if (!hostname) {
-      process.stdout.write('Error receiving hostname from deploy server.\n');
-      process.exit(1);
-    }
+      process.stdout.write('Now serving at ' + hostname + '\n');
 
-    process.stdout.write('Now serving at ' + hostname + '\n');
-    files.rm_recursive(build_dir);
+      files.rm_recursive(build_dir);
 
+      if (hostname && !hostname.match(/meteor\.com$/)) {
+        var dns = require('dns');
+        dns.resolve(site, 'CNAME', function (err, cnames) {
+          if (err || cnames[0] !== 'origin.meteor.com') {
+            dns.resolve(hostname, 'A', function (err, addresses) {
+              if (err || addresses[0] !== '107.22.210.133') {
+                process.stdout.write('-------------\n');
+                process.stdout.write("You've deployed to a custom domain.\n");
+                process.stdout.write("Please be sure to CNAME your hostname to origin.meteor.com,\n");
+                process.stdout.write("or set an A record to 107.22.210.133.\n");
+                process.stdout.write('-------------\n');
+                if (process.platform === "win32")
+                  process.exit(0);
+              }
+            });
+          }
+        });
+      } else {
+        if (process.platform === "win32")
+          process.exit(0);
+      }
+    };
 
-    if (hostname && !hostname.match(/meteor\.com$/)) {
-      var dns = require('dns');
-      dns.resolve(hostname, 'CNAME', function (err, cnames) {
-        if (err || cnames[0] !== 'origin.meteor.com') {
-          dns.resolve(hostname, 'A', function (err, addresses) {
-            if (err || addresses[0] !== '107.22.210.133') {
-              process.stdout.write('-------------\n');
-              process.stdout.write("You've deployed to a custom domain.\n");
-              process.stdout.write("Please be sure to CNAME your hostname to origin.meteor.com,\n");
-              process.stdout.write("or set an A record to 107.22.210.133.\n");
-              process.stdout.write('-------------\n');
-            }
-          });
-        }
-      });
-    }
+    var tar = spawn('tar', ['czf', '-', 'bundle'], {cwd: build_dir});
+    var rpc = meteor_rpc('deploy', 'POST', site, rpcOptions, rpc_callback);
+    tar.stdout.pipe(rpc);
   });
-
-  tar.stdout.pipe(rpc);
 };
 
 var delete_app = function (url) {

@@ -252,6 +252,11 @@ Fiber(function () {
     name: "update",
     help: "Upgrade to the latest version of Meteor",
     func: function (argv) {
+      if (process.platform === "win32") {
+        process.stdout.write("Updating through Meteor is not yet supported on Windows. Check out http://win.meteor.com weekly...");
+        process.exit(1);
+      }
+
       if (argv.help) {
         process.stdout.write(
           "Usage: meteor update\n" +
@@ -386,6 +391,11 @@ Fiber(function () {
     name: "bundle",
     help: "Pack this project up into a tarball",
     func: function (argv) {
+      if (process.platform === "win32") {
+        process.stdout.write("Bundling is not yet supported on Windows. This requires reimplementing the (un)archiving of the bundle...");
+        process.exit(1);
+      }
+
       if (argv.help || argv._.length != 1) {
         process.stdout.write(
           "Usage: meteor bundle <output_file.tar.gz>\n" +
@@ -474,25 +484,30 @@ Fiber(function () {
       var new_argv = opt.argv;
 
       if (new_argv._.length === 1) {
-        // localhost mode
-        find_mongo_port("mongo", function (mongod_port) {
-          if (!mongod_port) {
-            process.stdout.write(
-              "mongo: Meteor isn't running.\n" +
-                "\n" +
-                "This command only works while Meteor is running your application\n" +
-                "locally. Start your application first.\n");
-            process.exit(1);
-          }
+        if (process.platform === "win32") {
+          // XXX For now, assume the user knows what it is doing and just run the mongo shell.
+          var mongo_url = "mongodb://127.0.0.1:3002/meteor";
+          deploy.run_mongo_shell(mongo_url);
+        } else {
+          // localhost mode
+          find_mongo_port("mongo", function (mongod_port) {
+            if (!mongod_port) {
+              process.stdout.write(
+                "mongo: Meteor isn't running.\n" +
+                  "\n" +
+                  "This command only works while Meteor is running your application\n" +
+                  "locally. Start your application first.\n");
+              process.exit(1);
+            }
 
-          var mongo_url = "mongodb://127.0.0.1:" + mongod_port + "/meteor";
+            var mongo_url = "mongodb://127.0.0.1:" + mongod_port + "/meteor";
 
-          if (new_argv.url)
-            console.log(mongo_url);
-          else
-            deploy.run_mongo_shell(mongo_url);
-        });
-
+            if (new_argv.url)
+              console.log(mongo_url);
+            else
+              deploy.run_mongo_shell(mongo_url);
+          });
+        }
       } else if (new_argv._.length === 2) {
         // remote mode
         deploy.mongo(new_argv._[1], new_argv.url);
