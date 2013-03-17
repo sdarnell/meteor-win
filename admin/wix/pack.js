@@ -1,3 +1,7 @@
+// This script builds the Windows installer using the Wix toolset.
+// From the root of the source tree run:
+//  node admin\wix\pack.js
+
 var fs = require('fs');
 var exec = require('child_process').exec;
 var crypto = require('crypto');
@@ -52,6 +56,16 @@ var readFiles = function(dir, tabs) {
         }
     }
 };
+
+if (!fs.existsSync('admin\\wix') || !fs.statSync('admin\\wix').isDirectory()) {
+    console.log('ERROR: Missing admin\\wix directory. Are you running from the wrong directory?');
+    process.exit(1);
+}
+
+if (!fs.existsSync('dev_bundle') || !fs.statSync('dev_bundle').isDirectory()) {
+    console.log('ERROR: Missing dev_bundle directory. Did you remember to extract it?');
+    process.exit(1);
+}
 
 console.log('Cleaning...');
 cleanup(true);
