@@ -151,7 +151,10 @@ npm install underscore@1.4.2 # 1.4.4 is a performance regression
 npm install fstream@0.1.21
 npm install tar@0.1.14
 npm install websocket@1.0.8
+# kexec isn't supported on windows, but doesn't appear to be needed yet
+if [[ "$UNAME" != CYGWIN* && "$UNAME" != MINGW* ]] ; then
 npm install kexec@0.1.1
+fi
 npm install shell-quote@0.0.1
 
 # allow clientMaxAge to be set to 0:
