@@ -40,6 +40,22 @@ elif [ "$UNAME" == "Darwin" ] ; then
     stripBinary() {
         true
     }
+elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # Bitness does not matter on Windows, thus we don't check it here.
+
+    # We check that all of the required tools are present for people that want to make a dev bundle on Windows.
+    command -v git >/dev/null 2>&1 || { echo >&2 "I require 'git' but it's not installed. Aborting."; exit 1; }
+    command -v curl >/dev/null 2>&1 || { echo >&2 "I require 'curl' but it's not installed. Aborting."; exit 1; }
+    command -v unzip >/dev/null 2>&1 || { echo >&2 "I require 'unzip' but it's not installed. Aborting."; exit 1; }
+    command -v tar >/dev/null 2>&1 || { echo >&2 "I require 'tar' but it's not installed. Aborting."; exit 1; }
+
+    # XXX Can be adapted to support both 32-bit and 64-bit, currently supports only 32-bit (2 GB memory limit).
+    ARCH="i386"
+    MONGO_OS="win32"
+
+    stripBinary() {
+        true
+    }
 else
     echo "This OS not yet supported"
     exit 1
@@ -59,42 +75,83 @@ if [ -z "$BUNDLE_VERSION" ]; then
 fi
 echo "Building dev bundle $BUNDLE_VERSION"
 
+if command -v mktemp >/dev/null 2>&1 ; then
 DIR=`mktemp -d -t generate-dev-bundle-XXXXXXXX`
+else
+DIR="${TMPDIR-/tmp}/generate-dev-bundle-$RANDOM$RANDOM"
+mkdir "$DIR"
+fi
 trap 'rm -rf "$DIR" >/dev/null 2>&1' 0
-
-echo BUILDING IN "$DIR"
 
 cd "$DIR"
 chmod 755 .
 umask 022
-mkdir build
-cd build
 
-git clone git://github.com/joyent/node.git
-cd node
 # When upgrading node versions, also update the values of MIN_NODE_VERSION at
 # the top of app/meteor/meteor.js and app/server/server.js.
-git checkout v0.8.18
+NODE_VERSION=v0.8.18
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # XXX Only install node if it is not yet present.
+    #     To be able to install Node.js locally instead of to Program Files, we need to wait for https://github.com/joyent/node/issues/2279.
 
-./configure --prefix="$DIR"
-make -j4
-make install PORTABLE=1
-# PORTABLE=1 is a node hack to make npm look relative to itself instead
-# of hard coding the PREFIX.
+    # Make sure we can see node and npm
+    export PATH="/c/Program Files (x86)/nodejs:/c/Program Files/nodejs:$PATH"
 
-# export path so we use our new node for later builds
-export PATH="$DIR/bin:$PATH"
+    command -v node >/dev/null 2>&1 || {
+        echo DOWNLOADING NODE.JS IN "$DIR"
+        echo.
+
+        # Make sure we are on a version that passes the node-fibers tests on Windows.
+        curl -O http://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-x86.msi
+
+        echo.
+        echo INSTALLING NODE.JS
+        echo.
+
+        # Let's install node.js (includes v8 and npm).
+        $COMSPEC \/c node-$NODE_VERSION-x86.msi\ \/qr; true
+        rm node-$NODE_VERSION-x86.msi
+    }
+else
+    echo BUILDING IN "$DIR"
+
+    mkdir build
+    cd build
+
+    git clone git://github.com/joyent/node.git
+    cd node
+    git checkout $NODE_VERSION
+
+    ./configure --prefix="$DIR"
+    make -j4
+    make install PORTABLE=1
+    # PORTABLE=1 is a node hack to make npm look relative to itself instead
+    # of hard coding the PREFIX.
+
+    # export path so we use our new node for later builds
+    export PATH="$DIR/bin:$PATH"
+fi
 
 which node
 
 which npm
+
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # XXX On Windows node is installed in Program Files, so we jump there for the moment.
+    NODE=$(which node)
+    cd "${NODE}_modules"
+
+    # XXX Since we are working in the same location each time on Windows, we need to make sure existing node modules are no longer present so they can be replaced.
+    rm -rf connect gzippo optimist coffee-script less sass stylus nib mime semver handlebars mongodb uglify-js clean-css progress useragent useragent request http-proxy simplesmtp stream-buffers keypress mailcomposer sockjs fibers
+else
+    cd "$DIR/lib/node_modules"
+fi
 
 # When adding new node modules (or any software) to the dev bundle,
 # remember to update LICENSE.txt! Also note that we include all the
 # packages that these depend on, so watch out for new dependencies when
 # you update version numbers.
 
-cd "$DIR/lib/node_modules"
 npm install connect@1.9.2 # not 2.x yet. sockjs doesn't work w/ new connect
 npm install optimist@0.3.5
 npm install semver@1.1.0
@@ -107,7 +164,10 @@ npm install http-proxy@0.8.5
 npm install underscore@1.4.2 # 1.4.4 is a performance regression
 npm install fstream@0.1.21
 npm install tar@0.1.14
+# kexec isn't supported on windows, but doesn't appear to be needed yet
+if [[ "$UNAME" != CYGWIN* && "$UNAME" != MINGW* ]] ; then
 npm install kexec@0.1.1
+fi
 npm install shell-quote@0.0.1
 
 # allow clientMaxAge to be set to 0:
@@ -145,17 +205,38 @@ cd ../..
 # click 'changelog' under the current version, then 'release notes' in
 # the upper right.
 cd "$DIR"
-MONGO_VERSION="2.2.1"
+# XXX Versions in 2.2.x do not work on Windows XP, since 2.0.x nightly works there we're using 2.0.8 for now.
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    MONGO_VERSION="2.0.8"
+else
+    MONGO_VERSION="2.2.1"
+fi
 MONGO_NAME="mongodb-${MONGO_OS}-${ARCH}-${MONGO_VERSION}"
-MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.tgz"
-curl "$MONGO_URL" | tar -xz
+
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # The Windows distribution of MONGO comes in a different format, unzip accordingly.
+    MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.zip"
+    curl -O "$MONGO_URL"
+    unzip "${MONGO_NAME}.zip"
+    rm "${MONGO_NAME}.zip"
+else
+    MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.tgz"
+    curl "$MONGO_URL" | tar -xz
+fi
 mv "$MONGO_NAME" mongodb
 
 # don't ship a number of mongo binaries. they are big and unused. these
 # could be deleted from git dev_bundle but not sure which we'll end up
 # needing.
 cd mongodb/bin
-rm bsondump mongodump mongoexport mongofiles mongoimport mongorestore mongos mongosniff mongostat mongotop mongooplog mongoperf
+
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # The Windows distribution of MONGO comes in a different format, we need to specify ".exe" and "monogosniff.exe" misses.
+    rm bsondump.exe mongodump.exe mongoexport.exe mongofiles.exe mongoimport.exe mongorestore.exe mongos.exe mongostat.exe mongotop.exe
+else
+    rm bsondump mongodump mongoexport mongofiles mongoimport mongorestore mongos mongosniff mongostat mongotop mongooplog mongoperf
+fi
+
 cd ../..
 
 stripBinary bin/node
@@ -164,9 +245,25 @@ stripBinary mongodb/bin/mongod
 
 echo BUNDLING
 
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # XXX On Windows we make sure Node.js is bundled along in a proper way.
+    #     To be able to place Node.js here straight away instead of copying Program Files, we need to wait for https://github.com/joyent/node/issues/2279.
+    NODE=$(which node)
+    cd "${NODE}_modules"
+    cd ..
+    mkdir $DIR/bin
+    mkdir $DIR/lib
+    cp -R . $DIR/bin
+    cp -R $DIR/bin/node_modules $DIR/lib/node_modules
+fi
+
 cd "$DIR"
 echo "${BUNDLE_VERSION}" > .bundle_version.txt
-rm -rf build
+
+# If not on Windows, we did build node.js; so, we need to remove the build directory.
+if [[ "$UNAME" != CYGWIN* && "$UNAME" != MINGW* ]] ; then
+    rm -rf build
+fi
 
 tar czf "${TARGET_DIR}/dev_bundle_${PLATFORM}_${BUNDLE_VERSION}.tar.gz" .
 

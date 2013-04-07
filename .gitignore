@@ -4,6 +4,9 @@
 /dev_bundle
 /dev_bundle*.tar.gz
 /dist
+Meteor.msi
+Meteor.wixpdb
+\#*#
 \#*\#
 .\#*
 .idea

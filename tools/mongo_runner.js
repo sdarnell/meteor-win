@@ -75,6 +75,13 @@ exports.find_mongo_port = function (app_dir, callback) {
 // smaller hammers have failed before and it is getting tiresome.
 var find_mongo_and_kill_it_dead = function (port, callback) {
   find_mongo_pids(null, port, function (err, pids) {
+    // XXX Need to implement a "find mongo pids" for Windows.
+    if (process.platform === "win32")
+    {
+      callback();
+      return;
+    }
+
     if (err) {
       callback(err);
       return;
