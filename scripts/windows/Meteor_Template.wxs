@@ -23,9 +23,9 @@
             <ComponentGroupRef Id='Meteor'/>
         </Feature>
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
-        <WixVariable Id="WixUILicenseRtf" Value="admin\\wix\\extra\\license.rtf" />
-        <WixVariable Id="WixUIBannerBmp" Value="admin\\wix\\extra\\banner.bmp" />
-        <WixVariable Id="WixUIDialogBmp" Value="admin\\wix\\extra\\dialog.bmp" />
+        <WixVariable Id="WixUILicenseRtf" Value="scripts\\windows\\extra\\license.rtf" />
+        <WixVariable Id="WixUIBannerBmp" Value="scripts\\windows\\extra\\banner.bmp" />
+        <WixVariable Id="WixUIDialogBmp" Value="scripts\\windows\\extra\\dialog.bmp" />
         <UIRef Id="WixUI_InstallDir" />
         <Property Id="PREVIOUSVERSIONSINSTALLED" Secure="yes"/>
         <Upgrade Id="7db9b152-9dd7-4f3c-9eb2-91d63bac445a">
