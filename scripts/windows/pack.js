@@ -1,6 +1,6 @@
 // This script builds the Windows installer using the Wix toolset.
 // From the root of the source tree run:
-//  node admin\wix\pack.js
+//  node scripts\windows\pack.js
 
 var fs = require('fs');
 var exec = require('child_process').exec;
@@ -20,9 +20,9 @@ function cleanup(all) {
     }
 
     deleteFile('Meteor.wixpdb');
-    deleteFile('admin\\wix\\Meteor.wixobj');
-    deleteFile('admin\\wix\\Meteor.wxs');
-    deleteFile('admin\\wix\\extra\\license.rtf');
+    deleteFile('scripts\\windows\\Meteor.wixobj');
+    deleteFile('scripts\\windows\\Meteor.wxs');
+    deleteFile('scripts\\windows\\extra\\license.rtf');
 }
 
 var files = '';
@@ -33,7 +33,7 @@ var readFiles = function(dir, tabs) {
     for (var file in dirFiles) {
         var fileObject = dir + '\\' + dirFiles[file];
 
-        if (fileObject.match(/\.\\\.git|\.\\admin|\.\\\.meteor|\.\\dev_bundle\\bin\\node_modules\\(?!npm)|\.\\\.sublime-(?:project|workspace)|\.\\dev_bundle_.*/) === null) {
+        if (fileObject.match(/\.\\\.git|\.\\scripts|\.\\\.meteor|\.\\dev_bundle\\bin\\node_modules\\(?!npm)|\.\\\.sublime-(?:project|workspace)|\.\\dev_bundle_.*/) === null) {
             console.log(fileObject);
             var tabString = '';
             for (var i = 0; i < tabs; i++)
@@ -57,8 +57,8 @@ var readFiles = function(dir, tabs) {
     }
 };
 
-if (!fs.existsSync('admin\\wix') || !fs.statSync('admin\\wix').isDirectory()) {
-    console.log('ERROR: Missing admin\\wix directory. Are you running from the wrong directory?');
+if (!fs.existsSync('scripts\\windows') || !fs.statSync('scripts\\windows').isDirectory()) {
+    console.log('ERROR: Missing scripts\\windows directory. Are you running from the wrong directory?');
     process.exit(1);
 }
 
@@ -78,7 +78,7 @@ for (var hash in fileHashes) {
 }
 files += "\t\t</ComponentGroup>";
 
-var specifications = fs.readFileSync('admin\\meteor.spec', 'utf8');
+var specifications = fs.readFileSync('scripts\\admin\\upgrade-to-engine\\meteor.spec', 'utf8');
 var version = specifications.match(/Version: (.*)/)[1];
 var version_numbers = version.match(/(.*)\.(.*)\.(.*)/);
 var major = parseInt(version_numbers[1]);
@@ -99,9 +99,9 @@ if (build == 0) {
 }
 var prev_version = major + '.' + minor + '.' + build;
 
-fs.writeFileSync('admin\\wix\\extra\\license.rtf', '{\\rtf1\\ansi\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}{\\f1\\fnil\\fcharset238 Courier New;}}\r\n{\\*\\generator Riched20 6.2.8400}\\viewkind4\\uc1 \r\n\\pard\\f0\\fs22\\lang1033 ' + fs.readFileSync('LICENSE.txt', 'utf8').replace (/\r\n/gm, "\\par\r\n"), 'utf8');
+fs.writeFileSync('scripts\\windows\\extra\\license.rtf', '{\\rtf1\\ansi\\deff0\\nouicompat{\\fonttbl{\\f0\\fnil\\fcharset0 Courier New;}{\\f1\\fnil\\fcharset238 Courier New;}}\r\n{\\*\\generator Riched20 6.2.8400}\\viewkind4\\uc1 \r\n\\pard\\f0\\fs22\\lang1033 ' + fs.readFileSync('LICENSE.txt', 'utf8').replace (/\r\n/gm, "\\par\r\n"), 'utf8');
 
-var template = fs.readFileSync('admin\\wix\\Meteor_template.wxs', 'utf8');
+var template = fs.readFileSync('scripts\\windows\\Meteor_template.wxs', 'utf8');
 template = template.replace(/{{NAME}}/g, 'Meteor PREVIEW');
 template = template.replace(/{{VERSION}}/g, version);
 template = template.replace(/{{PREV_VERSION}}/g, prev_version);
@@ -111,16 +111,16 @@ if (template.match('{{.*}}')) {
     console.log('ERROR: There was something not replaced in the Meteor template.');
     process.exit(1);
 } else {
-    fs.writeFileSync('admin\\wix\\Meteor.wxs', template, 'utf8');
+    fs.writeFileSync('scripts\\windows\\Meteor.wxs', template, 'utf8');
 
     console.log('Compiling...');
-    exec('candle -o admin\\wix\\Meteor.wixobj admin\\wix\\Meteor.wxs', function (error, stdout, stderr) {
+    exec('candle -o scripts\\windows\\Meteor.wixobj scripts\\windows\\Meteor.wxs', function (error, stdout, stderr) {
         if (stdout)   console.log(stdout);
         if (stderr) { console.log(stderr); process.exit(1); }
         if (error) {  console.log(error);  process.exit(1); }
 
         console.log('Linking...');
-        exec('light -sw1076 -out Meteor.msi -ext WixUIExtension admin\\wix\\Meteor.wixobj', function (error, stdout, stderr) {
+        exec('light -sw1076 -out Meteor.msi -ext WixUIExtension scripts\\windows\\Meteor.wixobj', function (error, stdout, stderr) {
             if (stdout)   console.log(stdout);
             if (stderr) { console.log(stderr); process.exit(1); }
             if (error) {  console.log(error);  process.exit(1); }
