@@ -248,16 +248,18 @@ echo BUNDLING
 if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
     # XXX On Windows we make sure Node.js is bundled along in a proper way.
     #     To be able to place Node.js here straight away instead of copying Program Files, we need to wait for https://github.com/joyent/node/issues/2279.
+    # XXX This is fixed in node 0.10.0, but would probably require us to uninstall afterwards.
     NODE=$(which node)
     cd "${NODE}_modules"
     cd ..
-    mkdir $DIR/bin
-    mkdir $DIR/lib
-    cp -R . $DIR/bin
-    cp -R $DIR/bin/node_modules $DIR/lib/node_modules
+    mkdir "$DIR/bin"
+    mkdir "$DIR/lib"
+    cp node.exe npm npm.cmd nodejsvars.bat node_etw_provider.man "$DIR/bin"
+    cp -R node_modules "$DIR/lib/node_modules"
 fi
 
 cd "$DIR"
+echo "Writing bundle version"
 echo "${BUNDLE_VERSION}" > .bundle_version.txt
 
 # If not on Windows, we did build node.js; so, we need to remove the build directory.
@@ -265,6 +267,7 @@ if [[ "$UNAME" != CYGWIN* && "$UNAME" != MINGW* ]] ; then
     rm -rf build
 fi
 
+echo "Building bundle archive"
 tar czf "${TARGET_DIR}/dev_bundle_${PLATFORM}_${BUNDLE_VERSION}.tar.gz" .
 
 echo DONE
