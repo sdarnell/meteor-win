@@ -211,16 +211,14 @@ if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
     MONGO_VERSION="2.0.8"
 fi
 MONGO_NAME="mongodb-${MONGO_OS}-${ARCH}-${MONGO_VERSION}"
-
+MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.tgz"
 if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
     # The Windows distribution of MONGO comes in a different format, unzip accordingly.
-    MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.zip"
-    curl -O "$MONGO_URL"
+    curl -O "${MONGO_URL%.tgz}.zip"
     unzip "${MONGO_NAME}.zip"
     rm "${MONGO_NAME}.zip"
 else
-    MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.tgz"
-    curl "$MONGO_URL" | tar -xz
+curl "$MONGO_URL" | tar -xz
 fi
 mv "$MONGO_NAME" mongodb
 
