@@ -1,1 +1,3 @@
-@echo off&&"%METEOR_PATH%\bin\node.exe" "%METEOR_PATH%\app\meteor\meteor.js" %*
+@echo off
+set NODE_PATH=%~dp0\lib\node_modules
+"%~dp0\bin\node.exe" "%~dp0\tools\meteor.js" %*

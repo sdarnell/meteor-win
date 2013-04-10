@@ -13,7 +13,6 @@
                         <CreateFolder/>
                         <Environment Id="PATH" Action="set" Part="last" Name="PATH" Permanent="no" System="yes" Value="[INSTALLDIR];[INSTALLDIR]bin"/>
                         <Environment Id="METEOR_PATH" Action="set" Part="all" Name="METEOR_PATH" Permanent="no" System="yes" Value="[INSTALLDIR]"/>
-                        <Environment Id="NODE_PATH" Action="set" Part="all" Name="NODE_PATH" Permanent="no" System="yes" Value="[INSTALLDIR]lib\node_modules"/>
                     </Component>
                 </Directory>
             </Directory>
