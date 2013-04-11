@@ -221,6 +221,8 @@ _.extend(exports, {
     // directory.
     if (process.env.METEOR_WAREHOUSE_DIR)
       return true;
+    else if (process.platform === "win32")
+      return false; // For now, don't use the warehouse on Windows
     else
       return !files.in_checkout();
   },

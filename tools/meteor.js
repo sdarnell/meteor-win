@@ -957,6 +957,10 @@ Fiber(function () {
         context.releaseManifest.tools === files.getToolsVersion())
       return;
 
+    // Springboarding not supported on windows
+    if (process.platform === "win32")
+      return;
+
     toolsDebugMessage("springboarding from " + files.getToolsVersion() +
                       " to " + context.releaseManifest.tools);
 
