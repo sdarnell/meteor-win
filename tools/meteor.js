@@ -672,11 +672,6 @@ Fiber(function () {
 
       var new_argv = opt.argv;
 
-      if (new_argv._.length === 1 && process.platform === "win32") {
-        // XXX For now, assume the user knows what it is doing and just run the mongo shell.
-        var mongo_url = "mongodb://127.0.0.1:3002/meteor";
-        deploy.run_mongo_shell(mongo_url);
-      } else
       if (new_argv._.length === 1) {
         // localhost mode
         find_mongo_port("mongo", function (mongod_port) {
