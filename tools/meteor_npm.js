@@ -127,6 +127,15 @@ _.extend(exports, {
     if (_.isEqual(installedDependencies, npmDependencies))
       return;
 
+console.log("XXX Package "+packageName);
+console.log("XXX npmDependencies = "+JSON.stringify(npmDependencies));
+console.log("XXX installedDependencies = "+JSON.stringify(installedDependencies));
+
+if (/Program Files/.test(packageNpmDir)) {
+  console.log("XXX SKIPPING UPDATE");
+  return;
+}
+
     if (!quiet)
       self._logUpdateDependencies(packageName, npmDependencies);
 
