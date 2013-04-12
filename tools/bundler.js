@@ -48,17 +48,6 @@ var _ = require('underscore');
 var project = require(path.join(__dirname, 'project.js'));
 var exec = require('child_process').exec;
 
-var _symlinkSync = function (srcpath, dstpath) {
-  if (process.platform === "win32") {
-    // XXX Shouldn't this be sync?
-    // XXX Why does fs.symlinkSync(..., "junction") give EPERM, but mklink succeed?
-    exec('mklink /J "' + dstpath + '" "' + srcpath + '"');
-  } else {
-    fs.symlinkSync(srcpath, dstpath);
-  }
-};
-
-
 // files to ignore when bundling. node has no globs, so use regexps
 var ignore_files = [
     /~$/, /^\.#/, /^#.*#$/,
@@ -624,8 +613,13 @@ _.extend(Bundle.prototype, {
     // --- Third party dependencies ---
 
     if (nodeModulesMode === "symlink") {
-      _symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
-                   path.join(build_path, 'server', 'node_modules'));
+      if (process.platform === "win32") {
+        // Execute both ways of symlinking files, one of the two will pass.
+        exec('ln -s "' + process.env.NODE_PATH + '" "' + path.join(build_path, 'server', 'node_modules') + '"');
+        exec('mklink /J "' + path.join(build_path, 'server', 'node_modules') + '" "' + process.env.NODE_PATH + '"');
+      } else
+        fs.symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
+                       path.join(build_path, 'server', 'node_modules'));
     }
     else if (nodeModulesMode === "copy")
       files.cp_r((process.platform !== "win32" ? path.join(files.get_dev_bundle(), 'lib', 'node_modules') : process.env.NODE_PATH),
@@ -744,7 +738,7 @@ _.extend(Bundle.prototype, {
         if (nodeModulesMode === 'symlink') {
           // if we symlink the dev_bundle, also symlink individual package
           // node_modules.
-          _symlinkSync(self.nodeModulesDirs[rel_path], full_path);
+          fs.symlinkSync(self.nodeModulesDirs[rel_path], full_path);
         } else {
           // otherwise, copy them. if we're skipping the dev_bundle
           // modules (eg for deploy) we still need the per-package
