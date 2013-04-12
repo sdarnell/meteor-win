@@ -612,9 +612,6 @@ _.extend(Bundle.prototype, {
 
     // --- Third party dependencies ---
 
-    if (nodeModulesMode === "symlink")
-      fs.symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
-                     path.join(build_path, 'server', 'node_modules'));
     if (nodeModulesMode === "symlink") {
       if (process.platform === "win32") {
         // Execute both ways of symlinking files, one of the two will pass.
