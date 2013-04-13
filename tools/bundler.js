@@ -51,7 +51,8 @@ var exec = require('child_process').exec;
 var _symlinkSync = function (srcpath, dstpath) {
   if (process.platform === "win32") {
     // XXX Shouldn't this be sync?
-    // XXX Why does fs.symlinkSync(..., "junction") give EPERM, but mklink succeed?
+    // XXX Windows symlinks are broken in node 8.18, fixed in 9.11+
+    // https://github.com/joyent/node/issues/4952
     exec('mklink /J "' + dstpath + '" "' + srcpath + '"');
   } else {
     fs.symlinkSync(srcpath, dstpath);
