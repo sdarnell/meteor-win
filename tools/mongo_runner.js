@@ -47,7 +47,6 @@ if (process.platform === "win32") {
   // Windows doesn't have a ps quivalent that (reliably) includes the command
   // line, so approximate using the combined output of tasklist and netstat.
   find_mongo_pids = function (app_dir, port, callback) {
-    console.log("XXX find_mongo_pids(app_dir="+app_dir+" port="+port+")");
     child_process.exec('tasklist /fi "IMAGENAME eq mongod.exe"',
       function (error, stdout, stderr) {
         if (error) {
@@ -80,7 +79,6 @@ if (process.platform === "win32") {
                     // initial port + 1000 is also likely to be open.
                     // So remove the pid so we only match it once.
                     delete mongo_pids[found_pid];
-                    console.log("XXX FOUND Mongod pid "+found_pid+" on port "+found_port);
                     pids.push({pid: found_pid, port: found_port, app_dir: null});
                   }
                 }
