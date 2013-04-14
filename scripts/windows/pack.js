@@ -78,8 +78,9 @@ for (var hash in fileHashes) {
 }
 files += "\t\t</ComponentGroup>";
 
-var specifications = fs.readFileSync('scripts\\admin\\upgrade-to-engine\\meteor.spec', 'utf8');
-var version = specifications.match(/Version: (.*)/)[1];
+
+var notices = JSON.parse(fs.readFileSync('scripts\\admin\\notices.json', 'utf8'));
+var version = notices.slice(-1)[0].release;
 var version_numbers = version.match(/(.*)\.(.*)\.(.*)/);
 var major = parseInt(version_numbers[1]);
 var minor = parseInt(version_numbers[2]);
