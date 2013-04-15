@@ -210,7 +210,6 @@ _.extend(exports, {
   _execFileSync: function(file, args, opts) {
     var self = this;
 
-    self._printNpmCalls = true; // XXX temporary until working
     if (process.platform === "win32" && /\\bin\\npm$/.test(file))
       file += ".cmd";
 
