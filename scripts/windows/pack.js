@@ -1,6 +1,6 @@
 // This script builds the Windows installer using the Wix toolset.
 // From the root of the source tree run:
-//  node scripts\windows\pack.js
+//  dev_bundle\bin\node.exe scripts\windows\pack.js
 
 var fs = require('fs');
 var exec = require('child_process').exec;
