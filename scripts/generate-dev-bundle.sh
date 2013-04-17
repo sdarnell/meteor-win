@@ -40,6 +40,22 @@ elif [ "$UNAME" == "Darwin" ] ; then
     stripBinary() {
         true
     }
+elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # Bitness does not matter on Windows, thus we don't check it here.
+
+    # We check that all of the required tools are present for people that want to make a dev bundle on Windows.
+    command -v git >/dev/null 2>&1 || { echo >&2 "I require 'git' but it's not installed. Aborting."; exit 1; }
+    command -v curl >/dev/null 2>&1 || { echo >&2 "I require 'curl' but it's not installed. Aborting."; exit 1; }
+    command -v unzip >/dev/null 2>&1 || { echo >&2 "I require 'unzip' but it's not installed. Aborting."; exit 1; }
+    command -v tar >/dev/null 2>&1 || { echo >&2 "I require 'tar' but it's not installed. Aborting."; exit 1; }
+
+    # XXX Can be adapted to support both 32-bit and 64-bit, currently supports only 32-bit (2 GB memory limit).
+    ARCH="i386"
+    MONGO_OS="win32"
+
+    stripBinary() {
+        true
+    }
 else
     echo "This OS not yet supported"
     exit 1
@@ -59,7 +75,12 @@ if [ -z "$BUNDLE_VERSION" ]; then
 fi
 echo "Building dev bundle $BUNDLE_VERSION"
 
+if command -v mktemp >/dev/null 2>&1 ; then
 DIR=`mktemp -d -t generate-dev-bundle-XXXXXXXX`
+else
+DIR="${TMPDIR-/tmp}/generate-dev-bundle-$RANDOM$RANDOM"
+mkdir "$DIR"
+fi
 trap 'rm -rf "$DIR" >/dev/null 2>&1' 0
 
 echo BUILDING IN "$DIR"
@@ -70,17 +91,44 @@ umask 022
 mkdir build
 cd build
 
-git clone git://github.com/joyent/node.git
-cd node
 # When upgrading node versions, also update the values of MIN_NODE_VERSION at
 # the top of app/meteor/meteor.js and app/server/server.js.
-git checkout v0.8.18
+NODE_VERSION=v0.8.18
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    echo DOWNLOADING NODE.JS
+    echo.
+    cd "$DIR"
+    curl -O http://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-x86.msi
+    
+    echo EXTRACTING NODE.JS
+    echo.
+    $COMSPEC \/c "msiexec -a node-$NODE_VERSION-x86.msi -qb TARGETDIR=\"%CD%\\build\""
+    rm node-$NODE_VERSION-x86.msi
+    
+    # Re-organise files to match expected dev bundle layout
+    mkdir "$DIR/bin"
+    cd build/nodejs
+    cp node.exe npm npm.cmd nodejsvars.bat node_etw_provider.man "$DIR/bin"
 
-./configure --prefix="$DIR"
-make -j4
-make install PORTABLE=1
-# PORTABLE=1 is a node hack to make npm look relative to itself instead
-# of hard coding the PREFIX.
+    # This is needed for NPM
+    cp -R node_modules "$DIR/bin/node_modules"
+
+    mkdir "$DIR/lib"
+    cp -R node_modules "$DIR/lib/node_modules"
+
+    # XXX Not sure we need to override the NODE_MODULES, but play safe
+    NODE_MODULES="$DIR/lib/node_modules"
+else
+    git clone git://github.com/joyent/node.git
+    cd node
+    git checkout $NODE_VERSION
+
+    ./configure --prefix="$DIR"
+    make -j4
+    make install PORTABLE=1
+    # PORTABLE=1 is a node hack to make npm look relative to itself instead
+    # of hard coding the PREFIX.
+fi
 
 # export path so we use our new node for later builds
 export PATH="$DIR/bin:$PATH"
@@ -107,7 +155,10 @@ npm install http-proxy@0.8.5
 npm install underscore@1.4.2 # 1.4.4 is a performance regression
 npm install fstream@0.1.21
 npm install tar@0.1.14
+# kexec isn't supported on windows, but doesn't appear to be needed yet
+if [[ "$UNAME" != CYGWIN* && "$UNAME" != MINGW* ]] ; then
 npm install kexec@0.1.1
+fi
 npm install shell-quote@0.0.1
 
 # allow clientMaxAge to be set to 0:
@@ -126,7 +177,15 @@ npm install progress@0.0.5
 # If you update the version of fibers in the dev bundle, also update the "npm
 # install" command in docs/client/concepts.html and in the README in
 # app/lib/bundler.js.
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+# Take the fixes on the node-fibers fls_fix2 branch until released
+# https://github.com/laverdet/node-fibers/issues/106
+npm install https://github.com/laverdet/node-fibers/tarball/b33a5934fb
+rm -rf fibers/build/Release/obj
+else
 npm install fibers@1.0.0
+fi
+
 # Fibers ships with compiled versions of its C code for a dozen platforms. This
 # bloats our dev bundle, and confuses dpkg-buildpackage and rpmbuild into
 # thinking that the packages need to depend on both 32- and 64-bit versions of
@@ -146,16 +205,34 @@ cd ../..
 # the upper right.
 cd "$DIR"
 MONGO_VERSION="2.2.1"
+# XXX Versions in 2.2.x do not work on Windows XP, since 2.0.x nightly works there we're using 2.0.8 for now.
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    MONGO_VERSION="2.0.8"
+fi
 MONGO_NAME="mongodb-${MONGO_OS}-${ARCH}-${MONGO_VERSION}"
 MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.tgz"
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # The Windows distribution of MONGO comes in a different format, unzip accordingly.
+    curl -O "${MONGO_URL%.tgz}.zip"
+    unzip "${MONGO_NAME}.zip"
+    rm "${MONGO_NAME}.zip"
+else
 curl "$MONGO_URL" | tar -xz
+fi
 mv "$MONGO_NAME" mongodb
 
 # don't ship a number of mongo binaries. they are big and unused. these
 # could be deleted from git dev_bundle but not sure which we'll end up
 # needing.
 cd mongodb/bin
+
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+# The Windows distribution of MONGO comes in a different format, we need to specify ".exe" and "monogosniff.exe" misses.
+rm bsondump.exe mongodump.exe mongoexport.exe mongofiles.exe mongoimport.exe mongorestore.exe mongos.exe mongostat.exe mongotop.exe
+else
 rm bsondump mongodump mongoexport mongofiles mongoimport mongorestore mongos mongosniff mongostat mongotop mongooplog mongoperf
+fi
+
 cd ../..
 
 stripBinary bin/node
