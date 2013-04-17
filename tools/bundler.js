@@ -46,6 +46,18 @@ var uglify = require('uglify-js');
 var cleanCSS = require('clean-css');
 var _ = require('underscore');
 var project = require(path.join(__dirname, 'project.js'));
+var exec = require('child_process').exec;
+
+var fs_symlinkSync = function (srcpath, dstpath) {
+  if (process.platform === "win32") {
+    // XXX Windows symlinks are broken in node 8.18, fixed in 9.11+
+    // https://github.com/joyent/node/issues/4952
+    exec('mklink /J "' + dstpath + '" "' + srcpath + '"');
+  } else {
+    fs.symlinkSync(srcpath, dstpath);
+  }
+};
+
 
 // files to ignore when bundling. node has no globs, so use regexps
 var ignore_files = [
@@ -606,7 +618,7 @@ _.extend(Bundle.prototype, {
     // --- Third party dependencies ---
 
     if (nodeModulesMode === "symlink")
-      fs.symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
+      fs_symlinkSync(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
                      path.join(build_path, 'server', 'node_modules'));
     else if (nodeModulesMode === "copy")
       files.cp_r(path.join(files.get_dev_bundle(), 'lib', 'node_modules'),
@@ -706,7 +718,9 @@ _.extend(Bundle.prototype, {
       var full_path = path.join(build_path, path_in_bundle);
       files.mkdir_p(path.dirname(full_path), 0755);
       fs.writeFileSync(full_path, self.files.server[rel_path]);
-      app_json.load.push(path_in_bundle);
+      // XXX Since paths are hardcoded in the file, we need the slashes to be /
+      // so they work cross-platform after bundling and unpacking or deploying.
+      app_json.load.push(path_in_bundle.replace(/\\/g, '/'));
     }
 
     // `node_modules` directories for packages
@@ -723,7 +737,7 @@ _.extend(Bundle.prototype, {
         if (nodeModulesMode === 'symlink') {
           // if we symlink the dev_bundle, also symlink individual package
           // node_modules.
-          fs.symlinkSync(self.nodeModulesDirs[rel_path], full_path);
+          fs_symlinkSync(self.nodeModulesDirs[rel_path], full_path);
         } else {
           // otherwise, copy them. if we're skipping the dev_bundle
           // modules (eg for deploy) we still need the per-package
