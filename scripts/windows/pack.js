@@ -115,13 +115,13 @@ if (template.match('{{.*}}')) {
     fs.writeFileSync('scripts\\windows\\Meteor.wxs', template, 'utf8');
 
     console.log('Compiling...');
-    exec('candle -o scripts\\windows\\Meteor.wixobj scripts\\windows\\Meteor.wxs', function (error, stdout, stderr) {
+    exec('candle -nologo -o scripts\\windows\\Meteor.wixobj scripts\\windows\\Meteor.wxs', function (error, stdout, stderr) {
         if (stdout)   console.log(stdout);
         if (stderr) { console.log(stderr); process.exit(1); }
         if (error) {  console.log(error);  process.exit(1); }
 
         console.log('Linking...');
-        exec('light -sw1076 -out Meteor.msi -ext WixUIExtension scripts\\windows\\Meteor.wixobj', function (error, stdout, stderr) {
+        exec('light -nologo -sw1076 -out Meteor.msi -ext WixUIExtension scripts\\windows\\Meteor.wixobj', function (error, stdout, stderr) {
             if (stdout)   console.log(stdout);
             if (stderr) { console.log(stderr); process.exit(1); }
             if (error) {  console.log(error);  process.exit(1); }
