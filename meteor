@@ -5,7 +5,10 @@ BUNDLE_VERSION=0.3.0
 # OS Check. Put here because here is where we download the precompiled
 # bundles that are arch specific.
 UNAME=$(uname)
-if [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
+
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+	ARCH="i386"
+elif [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
     echo "Sorry, this OS is not supported."
     exit 1
 fi
@@ -84,6 +87,10 @@ if [ -d "$SCRIPT_DIR/.git" ] || [ -f "$SCRIPT_DIR/.git" ]; then
     fi
 
     DEV_BUNDLE="$SCRIPT_DIR/dev_bundle"
+    METEOR="$SCRIPT_DIR/tools/meteor.js"
+elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    # dirname does not work on Windows, however just $SCRIPT_DIR does.
+    DEV_BUNDLE="$SCRIPT_DIR"
     METEOR="$SCRIPT_DIR/tools/meteor.js"
 else
     # In an install
