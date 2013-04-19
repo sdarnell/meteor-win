@@ -177,8 +177,6 @@ var run = function () {
     // See https://github.com/meteor/meteor/pull/852
     app.use(gzippo.staticGzip(static_cacheable_path,
                               {clientMaxAge: 1000 * 60 * 60 * 24 * 365,
-                               // XXX Temporary hack to make sure PNGs are served
-                               contentTypeMatch: /text|javascript|json|png/,
                                root: '/'}));
   // cache non-cacheable file anyway. This isn't really correct, as
   // users can change the files and changes won't propogate
@@ -190,8 +188,6 @@ var run = function () {
   // https://github.com/meteor/meteor/issues/773
   app.use(gzippo.staticGzip(path.join(bundle_dir, 'static'),
                             {clientMaxAge: 1000 * 60 * 60 * 24,
-                             // XXX Temporary hack to make sure PNGs are served
-                             contentTypeMatch: /text|javascript|json|png/,
                              root: '/'}));
 
   // read bundle config file
