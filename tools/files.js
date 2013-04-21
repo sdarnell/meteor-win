@@ -528,7 +528,14 @@ _.extend(exports, {
   // be piped as needed.  The tar archive will contain a top-level
   // directory named after dirPath.
   createTarGzStream: function (dirPath) {
-    return fstream.Reader({ path: dirPath, type: 'Directory' }).pipe(
+    function fixupDirs(entry) {
+      // Make sure readable directories have execute permission
+      if (entry.props.type === "Directory")
+        entry.props.mode |= (entry.props.mode >>> 2) & 0111;
+      return true;
+    }
+
+    return fstream.Reader({ path: dirPath, type: 'Directory', filter: fixupDirs }).pipe(
       tar.Pack()).pipe(zlib.createGzip());
   },
 

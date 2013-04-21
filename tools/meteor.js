@@ -583,11 +583,6 @@ Fiber(function () {
     name: "bundle",
     help: "Pack this project up into a tarball",
     func: function (argv) {
-      if (process.platform === "win32") {
-        process.stdout.write("Bundling is not yet supported on Windows. This requires reimplementing the (un)archiving of the bundle...");
-        process.exit(1);
-      }
-
       if (argv.help || argv._.length != 1) {
         process.stdout.write(
           "Usage: meteor bundle <output_file.tar.gz>\n" +
