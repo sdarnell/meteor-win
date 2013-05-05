@@ -34,7 +34,7 @@ Once the dev_bundle has been built, there will be a tar.gz file in the root
 ```
 $ mkdir dev_bundle
 $ cd dev_bundle
-$ tar xvf ../dev_bundle_MINGW32_NT-6.1_i386_0.3.0.tar.gz
+$ tar xvf ../dev_bundle_Windows_i386_0.3.0.tar.gz
 $ cd ..
 ```
 

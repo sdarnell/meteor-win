@@ -6,6 +6,10 @@ set -u
 UNAME=$(uname)
 ARCH=$(uname -m)
 
+if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    UNAME="Windows"
+fi
+
 if [ "$UNAME" == "Linux" ] ; then
     if [ "$ARCH" != "i686" -a "$ARCH" != "x86_64" ] ; then
         echo "Unsupported architecture: $ARCH"
@@ -40,7 +44,7 @@ elif [ "$UNAME" == "Darwin" ] ; then
     stripBinary() {
         true
     }
-elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+elif [ "$UNAME" == "Windows" ] ; then
     # Bitness does not matter on Windows, thus we don't check it here.
 
     # We check that all of the required tools are present for people that want to make a dev bundle on Windows.
@@ -94,7 +98,7 @@ cd build
 # When upgrading node versions, also update the values of MIN_NODE_VERSION at
 # the top of app/meteor/meteor.js and app/server/server.js.
 NODE_VERSION=v0.8.18
-if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+if [ "$UNAME" == "Windows" ] ; then
     echo DOWNLOADING NODE.JS
     echo.
     cd "$DIR"
@@ -156,7 +160,7 @@ npm install underscore@1.4.2 # 1.4.4 is a performance regression
 npm install fstream@0.1.21
 npm install tar@0.1.14
 # kexec isn't supported on windows, but doesn't appear to be needed yet
-if [[ "$UNAME" != CYGWIN* && "$UNAME" != MINGW* ]] ; then
+if [ "$UNAME" != "Windows" ] ; then
 npm install kexec@0.1.1
 fi
 npm install shell-quote@0.0.1
@@ -178,7 +182,7 @@ npm install progress@0.0.5
 # If you update the version of fibers in the dev bundle, also update the "npm
 # install" command in docs/client/concepts.html and in the README in
 # app/lib/bundler.js.
-if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+if [ "$UNAME" == "Windows" ] ; then
 # Take the fixes on the node-fibers fls_fix2 branch until released
 # https://github.com/laverdet/node-fibers/issues/106
 npm install https://github.com/laverdet/node-fibers/tarball/b33a5934fb
@@ -207,12 +211,12 @@ cd ../..
 cd "$DIR"
 MONGO_VERSION="2.2.1"
 # XXX Versions in 2.2.x do not work on Windows XP, since 2.0.x nightly works there we're using 2.0.8 for now.
-if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+if [ "$UNAME" == "Windows" ] ; then
     MONGO_VERSION="2.0.8"
 fi
 MONGO_NAME="mongodb-${MONGO_OS}-${ARCH}-${MONGO_VERSION}"
 MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.tgz"
-if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+if [ "$UNAME" == "Windows" ] ; then
     # The Windows distribution of MONGO comes in a different format, unzip accordingly.
     curl -O "${MONGO_URL%.tgz}.zip"
     unzip "${MONGO_NAME}.zip"
@@ -227,7 +231,7 @@ mv "$MONGO_NAME" mongodb
 # needing.
 cd mongodb/bin
 
-if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+if [ "$UNAME" == "Windows" ] ; then
 # The Windows distribution of MONGO comes in a different format, we need to specify ".exe" and "monogosniff.exe" misses.
 rm bsondump.exe mongodump.exe mongoexport.exe mongofiles.exe mongoimport.exe mongorestore.exe mongos.exe mongostat.exe mongotop.exe
 else
