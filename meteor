@@ -7,6 +7,7 @@ BUNDLE_VERSION=0.3.0
 UNAME=$(uname)
 
 if [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+	UNAME="Windows"
 	ARCH="i386"
 elif [ "$UNAME" != "Linux" -a "$UNAME" != "Darwin" ] ; then
     echo "Sorry, this OS is not supported."
@@ -88,7 +89,7 @@ if [ -d "$SCRIPT_DIR/.git" ] || [ -f "$SCRIPT_DIR/.git" ]; then
 
     DEV_BUNDLE="$SCRIPT_DIR/dev_bundle"
     METEOR="$SCRIPT_DIR/tools/meteor.js"
-elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+elif [ "$UNAME" == "Windows" ] ; then
     # dirname does not work on Windows, however just $SCRIPT_DIR does.
     DEV_BUNDLE="$SCRIPT_DIR"
     METEOR="$SCRIPT_DIR/tools/meteor.js"
