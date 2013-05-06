@@ -4,13 +4,19 @@ var os = require('os');
 var fs = require('fs');
 var path = require('path');
 var child_process = require('child_process');
+var crypto = require('crypto');
 
 var Fiber = require('fibers');
 var Future = require('fibers/future');
 var _ = require('underscore');
 var files = require('../../tools/files.js');
 var warehouse = require('../../tools/warehouse.js');
-var SHA1 = require("./tinySHA1.r4");
+
+var sha1 = function (contents) {
+  var hash = crypto.createHash('sha1');
+  hash.update(contents);
+  return hash.digest('hex');
+};
 
 // runs a command, returns stdout.
 var execFileSync = function (binary, args) {
@@ -106,7 +112,7 @@ var buildToolsTree = function (TARGET_DIR) {
     'LICENSE.txt', 'meteor', 'tools', 'examples',
     path.join('scripts', 'admin', 'launch-meteor')
   ]);
-  var TOOLS_VERSION = SHA1(output).slice(0, 10);
+  var TOOLS_VERSION = sha1(output).slice(0, 10);
   console.log(TOOLS_VERSION);
 
   return TOOLS_VERSION;
@@ -165,7 +171,7 @@ var buildPackageTarballs = function () {
         manifest += ',\n';
       }
       var output = execFileSync('git', ['ls-tree', 'HEAD', PACKAGE]);
-      var PACKAGE_VERSION = SHA1(output).slice(0, 10);
+      var PACKAGE_VERSION = sha1(output);
       console.log('- %s version %s', PACKAGE, PACKAGE_VERSION);
 
       var tarball = path.join(OUTDIR, PACKAGE + '-' + PACKAGE_VERSION + '-' + PLATFORM + '.tar.gz');
