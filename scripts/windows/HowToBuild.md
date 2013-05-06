@@ -19,13 +19,9 @@ Sometimes the NPM fetch will fail and NPM will retry, for example:
 ```
 npm http GET https://github.com/sdarnell/gzippo/tarball/e824ae280d
 npm ERR! fetch failed https://github.com/sdarnell/gzippo/tarball/e824ae280d
-npm http GET https://github.com/sdarnell/gzippo/tarball/e824ae280d
-npm ERR! fetch failed https://github.com/sdarnell/gzippo/tarball/e824ae280d
-npm http GET https://github.com/sdarnell/gzippo/tarball/e824ae280d
-npm ERR! fetch failed https://github.com/sdarnell/gzippo/tarball/e824ae280d
 npm ERR! Error: connect ETIMEDOUT
 ```
-This is believed to be a github issue (possibly their tarball servers get
+This is believed to be a github issue (possibly their tarball servers getting
  overloaded or confused). Things seem to recover after a while.
  Just retry later.
 
@@ -33,15 +29,13 @@ Once the dev_bundle has been built, there will be a tar.gz file in the root
  directory, and that should be expanded:
 ```
 $ mkdir dev_bundle
-$ cd dev_bundle
-$ tar xvf ../dev_bundle_Windows_i386_0.3.0.tar.gz
-$ cd ..
+$ tar -xvf ../dev_bundle_Windows_i386_0.3.0.tar.gz -C dev_bundle
 ```
 
 Then I switch to a regular command prompt window at the root.
 The next step initialises some npm dependencies/versions:
 ```
-C:\github\meteor>scripts\windows\meteor_get_ready.bat
+C:\github\meteor> .\meteor --get-ready
 coffeescript: updating npm dependencies -- coffee-script...
 email: updating npm dependencies -- mailcomposer, simplesmtp, stream-buffers...
 less: updating npm dependencies -- less...
