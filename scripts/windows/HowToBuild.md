@@ -29,7 +29,7 @@ Once the dev_bundle has been built, there will be a tar.gz file in the root
  directory, and that should be expanded:
 ```
 $ mkdir dev_bundle
-$ tar -xvf ../dev_bundle_Windows_i386_0.3.0.tar.gz -C dev_bundle
+$ tar -xvf dev_bundle_Windows_i386_0.3.0.tar.gz -C dev_bundle
 ```
 
 Then I switch to a regular command prompt window at the root.
