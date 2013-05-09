@@ -48,13 +48,20 @@ var _ = require('underscore');
 var project = require(path.join(__dirname, 'project.js'));
 var exec = require('child_process').exec;
 
-var fs_symlinkSync = function (srcpath, dstpath) {
+var fs_symlinkSync = function (targetpath, linkpath) {
   if (process.platform === "win32") {
-    // XXX Windows symlinks are broken in node 8.18, fixed in 9.11+
-    // https://github.com/joyent/node/issues/4952
-    exec('mklink /J "' + dstpath + '" "' + srcpath + '"');
+    // Symlinks/junctions are problematic on Windows: not supported on some
+    // filesystems, limited by permissions, broken in node 8.18, no built-in
+    // command to create them on XP, not all apps do sensible things etc.
+    // For node issue, see: https://github.com/joyent/node/issues/4952
+    // Luckily they are not really needed much in the bundle, so use a
+    // simple text file - a bit like shortcuts.
+    // server.js contains the code to indirect via the symlink files.
+    fs.writeFileSync(linkpath + '.symlink', fs.realpathSync(targetpath));
+
+    // was exec('mklink /J "' + linkpath + '" "' + targetpath + '"');
   } else {
-    fs.symlinkSync(srcpath, dstpath);
+    fs.symlinkSync(targetpath, linkpath);
   }
 };
 
