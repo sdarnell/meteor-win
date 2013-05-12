@@ -168,7 +168,7 @@ npm install shell-quote@0.0.1
 # allow clientMaxAge to be set to 0:
 # https://github.com/tomgco/gzippo/pull/49
 #npm install https://github.com/meteor/gzippo/tarball/1e4b955439
-npm install https://github.com/sdarnell/gzippo/tarball/26974216d3
+npm install https://github.com/sdarnell/gzippo/tarball/1e373c70a4
 
 # uglify-js has a bug which drops 'undefined' in arrays:
 # https://github.com/mishoo/UglifyJS2/pull/97
