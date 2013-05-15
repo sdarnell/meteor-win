@@ -11,12 +11,21 @@ var util = require('util');
 var _ = require('underscore');
 var zlib = require("zlib");
 var tar = require("tar");
+var Fiber = require('fibers');
 var Future = require('fibers/future');
 var request = require('request');
 
 var fstream = require('fstream');
 
 var cleanup = require('./cleanup.js');
+
+var sleep = function(ms) {
+  var fiber = Fiber.current;
+  setTimeout(function() {
+    fiber.run();
+  }, ms);
+  Fiber.yield();
+};
 
 var files = exports;
 _.extend(exports, {
@@ -220,6 +229,8 @@ _.extend(exports, {
     // directory.
     if (process.env.METEOR_WAREHOUSE_DIR)
       return true;
+    else if (process.platform === "win32")
+      return false; // For now, don't use the warehouse on Windows
     else
       return !files.in_checkout();
   },
@@ -260,6 +271,23 @@ _.extend(exports, {
 
   // Like rm -r.
   rm_recursive: function (p) {
+    if (process.platform === "win32") {
+      // Deletion on windows is often a pain, so retry a number of times
+      for (var retries = 10; retries > 1; retries--) {
+        try {
+          files._rm_recursive(p);
+          return;
+        } catch (e) {
+          sleep(500);
+          console.log("rm_recursive got " + e.code + " retrying");
+        }
+      }
+      // Fall through for one last attempt without a try/catch
+    }
+    files._rm_recursive(p);
+  },
+
+  _rm_recursive: function (p) {
     try {
       // the l in lstat is critical -- we want to remove symbolic
       // links, not what they point to
@@ -273,7 +301,7 @@ _.extend(exports, {
     if (stat.isDirectory()) {
       _.each(fs.readdirSync(p), function (file) {
         file = path.join(p, file);
-        files.rm_recursive(file);
+        files._rm_recursive(file);
       });
       fs.rmdirSync(p);
     } else
@@ -461,7 +489,14 @@ _.extend(exports, {
   // be piped as needed.  The tar archive will contain a top-level
   // directory named after dirPath.
   createTarGzStream: function (dirPath) {
-    return fstream.Reader({ path: dirPath, type: 'Directory' }).pipe(
+    function fixupDirs(entry) {
+      // Make sure readable directories have execute permission
+      if (entry.props.type === "Directory")
+        entry.props.mode |= (entry.props.mode >>> 2) & 0111;
+      return true;
+    }
+
+    return fstream.Reader({ path: dirPath, type: 'Directory', filter: fixupDirs }).pipe(
       tar.Pack()).pipe(zlib.createGzip());
   },
 

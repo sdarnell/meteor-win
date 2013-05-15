@@ -465,6 +465,11 @@ _.extend(warehouse, {
       arch = "x86_64";
     else
       throw new Error("Unsupported architecture " + arch);
-    return os.type() + "_" + arch;
+
+    var type = os.type();
+    if (type === "Windows_NT")
+      type = "Windows";
+
+    return type + "_" + arch;
   }
 });

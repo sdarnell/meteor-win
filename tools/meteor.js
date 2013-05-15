@@ -366,6 +366,11 @@ Fiber(function () {
         process.exit(1);
       }
 
+      if (process.platform === "win32") {
+        process.stdout.write("Updating through Meteor is not yet supported on Windows. Check out http://win.meteor.com weekly...");
+        process.exit(1);
+      }
+
       // refuse to update if we're in a git checkout.
       if (!files.usesWarehouse()) {
         logging.die(
@@ -943,6 +948,10 @@ Fiber(function () {
   var toolsSpringboard = function (extraArgs) {
     if (!context.releaseManifest ||
         context.releaseManifest.tools === files.getToolsVersion())
+      return;
+
+    // Springboarding not supported on windows
+    if (process.platform === "win32")
       return;
 
     toolsDebugMessage("springboarding from " + files.getToolsVersion() +
