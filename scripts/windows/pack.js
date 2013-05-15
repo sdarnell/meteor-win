@@ -81,6 +81,9 @@ files += "\t\t</ComponentGroup>";
 
 var notices = JSON.parse(fs.readFileSync('scripts\\admin\\notices.json', 'utf8'));
 var version = notices.slice(-1)[0].release;
+if (version === "NEXT") {
+  version = notices.slice(-2)[0].release;
+}
 var version_numbers = version.match(/(.*)\.(.*)\.(.*)/);
 var major = parseInt(version_numbers[1]);
 var minor = parseInt(version_numbers[2]);
