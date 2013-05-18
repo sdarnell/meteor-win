@@ -210,17 +210,23 @@ cd ../..
 # the upper right.
 cd "$DIR"
 MONGO_VERSION="2.4.3"
-# XXX Versions in 2.2.x do not work on Windows XP, since 2.0.x nightly works there we're using 2.0.8 for now.
-if [ "$UNAME" == "Windows" ] ; then
-    MONGO_VERSION="2.0.8"
-fi
 MONGO_NAME="mongodb-${MONGO_OS}-${ARCH}-${MONGO_VERSION}"
 MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.tgz"
 if [ "$UNAME" == "Windows" ] ; then
     # The Windows distribution of MONGO comes in a different format, unzip accordingly.
-    curl -O "${MONGO_URL%.tgz}.zip"
-    unzip "${MONGO_NAME}.zip"
-    rm "${MONGO_NAME}.zip"
+    curl -o mongodb.zip "${MONGO_URL%.tgz}.zip"
+    unzip mongodb.zip
+    rm mongodb.zip
+    
+    # Also download and extract an old WinXP compatible version
+    curl  -o mongodb.zip "http://fastdl.mongodb.org/${MONGO_OS}/mongodb-${MONGO_OS}-${ARCH}-2.0.8.zip"
+    unzip -j mongodb.zip -d "${MONGO_NAME}/bin/xp" "*/mongod.exe"
+    rm mongodb.zip
+
+    # Do the same for the x64 version
+    curl  -o mongodb.zip "http://fastdl.mongodb.org/${MONGO_OS}/mongodb-${MONGO_OS}-x86_64-2008plus-${MONGO_VERSION}.zip"
+    unzip -j mongodb.zip -d "${MONGO_NAME}/bin/x64" "*/mongod.exe"
+    rm mongodb.zip
 else
 curl "$MONGO_URL" | tar -xz
 fi
@@ -233,7 +239,8 @@ cd mongodb/bin
 
 if [ "$UNAME" == "Windows" ] ; then
 # The Windows distribution of MONGO comes in a different format, we need to specify ".exe" and "monogosniff.exe" misses.
-rm bsondump.exe mongodump.exe mongoexport.exe mongofiles.exe mongoimport.exe mongorestore.exe mongos.exe mongostat.exe mongotop.exe
+rm bsondump.exe mongodump.exe mongoexport.exe mongofiles.exe mongoimport.exe mongorestore.exe mongos.exe mongostat.exe mongotop.exe mongooplog.exe mongoperf.exe
+rm *.pdb 
 else
 rm bsondump mongodump mongoexport mongofiles mongoimport mongorestore mongos mongosniff mongostat mongotop mongooplog mongoperf
 fi

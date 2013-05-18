@@ -1,7 +1,7 @@
 var fs = require("fs");
 var path = require("path");
 var child_process = require('child_process');
-
+var os = require("os");
 var files = require('./files.js');
 
 var _ = require('underscore');
@@ -192,6 +192,17 @@ exports.launch_mongo = function (app_dir, port, launch_callback, on_exit_callbac
                               'mongodb',
                               'bin',
                               'mongod');
+
+  if (process.platform === "win32") {
+    // Use a different mongod on various platforms
+    if (os.release().slice(0, 2) === '5.') { // WinXP, 2000 and 2003
+      mongod_path = mongod_path.replace(/mongod$/, path.join('xp', 'mongod'));
+    } else if (os.release().slice(0, 4) === '6.0.') {
+      // The best 64-bit mongodb doesn't support Vista or 2008 R1, so use 32-bit
+    } else if (process.env['ProgramW6432']) {
+      mongod_path = mongod_path.replace(/mongod$/, path.join('x64', 'mongod'));
+    }
+  }
 
   // store data in app_dir
   var data_path = path.join(app_dir, '.meteor', 'local', 'db');
