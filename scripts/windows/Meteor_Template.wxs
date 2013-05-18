@@ -11,7 +11,7 @@
                 <Directory Id='INSTALLDIR' Name='Meteor'>
                     <Component Id='Installation' Guid='2e3a08d0-db3e-42dd-bb47-e9a6d067b677'>
                         <CreateFolder/>
-                        <Environment Id="PATH" Action="set" Part="last" Name="PATH" Permanent="no" System="yes" Value="[INSTALLDIR];[INSTALLDIR]bin"/>
+                        <Environment Id="PATH" Action="set" Part="last" Name="PATH" Permanent="no" System="yes" Value="[INSTALLDIR]"/>
                         <Environment Id="METEOR_PATH" Action="set" Part="all" Name="METEOR_PATH" Permanent="no" System="yes" Value="[INSTALLDIR]"/>
                     </Component>
                 </Directory>
