@@ -711,6 +711,9 @@ _.extend(Bundle.prototype, {
       else
         throw new Error('unable to find file: ' + file);
 
+      if (process.platform === "win32") {
+        url = url.replace(/\\/g, '/');
+      }
       addClientFileToManifest(file, contents, type, true, url);
     };
 
