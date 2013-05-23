@@ -33,7 +33,7 @@ var readFiles = function(dir, tabs) {
     for (var file in dirFiles) {
         var fileObject = dir + '\\' + dirFiles[file];
 
-        if (fileObject.match(/\.\\\.git|\.\\scripts|\.\\\.meteor|\.\\dev_bundle\\bin\\node_modules\\(?!npm)|\.\\\.sublime-(?:project|workspace)|\.\\dev_bundle_.*/) === null) {
+        if (fileObject.match(/\.\\\.git|\.\\scripts|\.\\\.meteor|\.\\dev_bundle\\bin\\node_modules\\(?!npm)|\.\\\.sublime-(?:project|workspace)|\.\\dev_bundle_.*|\.\\dist/) === null) {
             console.log(fileObject);
             var tabString = '';
             for (var i = 0; i < tabs; i++)
