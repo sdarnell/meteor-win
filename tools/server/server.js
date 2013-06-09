@@ -332,7 +332,7 @@ var run = function () {
 
   }).run();
 
-  if (argv.keepalive && process.platform !== "win32")
+  if (argv.keepalive)
     init_keepalive();
 };
 
