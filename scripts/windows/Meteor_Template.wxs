@@ -14,12 +14,20 @@
                         <Environment Id="PATH" Action="set" Part="last" Name="PATH" Permanent="no" System="yes" Value="[INSTALLDIR]"/>
                         <Environment Id="METEOR_PATH" Action="set" Part="all" Name="METEOR_PATH" Permanent="no" System="yes" Value="[INSTALLDIR]"/>
                     </Component>
+                    <!-- Some users report issues with node/fibers on Win8. Setting Win7 compatibility mode apparently helps. -->
+                    <Component Id='Win8CompatSetting' Guid='eab90555-a2b2-4451-8b24-ee74ad1ba8b7'>
+                        <Condition><![CDATA[VersionNT >= 602]]></Condition>
+                        <RegistryKey Root='HKLM' Key='SOFTWARE\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers'>
+                            <RegistryValue Type='string' Name='[INSTALLDIR]bin\node.exe' Value='WIN7RTM' KeyPath='yes' />
+                        </RegistryKey>
+                    </Component>
                 </Directory>
             </Directory>
         </Directory>
 {{FILES}}
         <Feature Id='Meteor' Level='1'>
             <ComponentGroupRef Id='Meteor'/>
+            <ComponentRef Id='Win8CompatSetting' />
         </Feature>
         <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
         <WixVariable Id="WixUILicenseRtf" Value="scripts\\windows\\extra\\license.rtf" />
