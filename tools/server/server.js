@@ -248,18 +248,26 @@ var run = function () {
         // dev bundle if you are in an app or your package isn't using
         // said npm module
         require: function(name) {
-          var filePathParts = filename.split(path.sep);
+          var filePathParts = path.normalize(filename).split(path.sep);
           if (filePathParts[0] !== 'app' || filePathParts[1] !== 'packages') { // XXX it's weird that we're dependent on the dir structure
             return require(name); // current no support for npm outside packages. load from dev bundle only
           } else {
-            var nodeModuleDir = path.join(
+            var moduleRoot = path.join(
               __dirname,
               '..' /* get out of server/ */,
               'app' /* === filePathParts[0] */,
               'packages' /* === filePathParts[1] */,
               filePathParts[2] /* package name */,
-              'node_modules',
-              name);
+              'node_modules');
+
+            if (process.platform === "win32") {
+              try {
+                moduleRoot = fs.readFileSync(moduleRoot + '.symlink', 'utf8');
+              } catch (e) {
+              }
+            }
+
+            var nodeModuleDir = path.join(moduleRoot, name);
 
             if (fs.existsSync(nodeModuleDir)) {
               return require(nodeModuleDir);
