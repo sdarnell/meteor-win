@@ -177,14 +177,7 @@ npm install progress@0.0.5
 # If you update the version of fibers in the dev bundle, also update the "npm
 # install" command in docs/client/concepts.html and in the README in
 # app/lib/bundler.js.
-if [ "$UNAME" == "Windows" ] ; then
-# Take the fixes on the node-fibers fls_fix2 branch until released
-# https://github.com/laverdet/node-fibers/issues/106
-npm install https://github.com/laverdet/node-fibers/tarball/b33a5934fb
-rm -rf fibers/build/Release/obj
-else
-npm install fibers@1.0.0
-fi
+npm install fibers@1.0.1
 
 # Fibers ships with compiled versions of its C code for a dozen platforms. This
 # bloats our dev bundle, and confuses dpkg-buildpackage and rpmbuild into
