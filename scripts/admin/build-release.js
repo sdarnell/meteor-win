@@ -101,7 +101,7 @@ var buildToolsTree = function (TARGET_DIR) {
 
   // mark directory with current git sha
   var gitVersion = execFileSync('git', ['rev-parse', 'HEAD']);
-  fs.writeFileSync(path.join(TARGET_DIR, '.git_version.txt'));
+  fs.writeFileSync(path.join(TARGET_DIR, '.git_version.txt'), gitVersion);
 
   // generate tools version: directory hash that depends only on file contents and
   // permissions but nothing else, eg modification time or build outputs. This
@@ -114,6 +114,7 @@ var buildToolsTree = function (TARGET_DIR) {
   ]);
   var TOOLS_VERSION = sha1(output).slice(0, 10);
   console.log(TOOLS_VERSION);
+  fs.writeFileSync(path.join(TARGET_DIR, '.tools_version.txt'), TOOLS_VERSION);
 
   return TOOLS_VERSION;
 };
