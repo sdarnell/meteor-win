@@ -25,7 +25,8 @@ if [%1] == [] (
   echo Building bootstrap package
   dev_bundle\bin\node.exe scripts\admin\build-bootstrap.js %1
 
-  copy scripts\windows\LaunchMeteor.exe dist\public /q
+  echo Copying LaunchMeteor.exe
+  copy scripts\windows\LaunchMeteor.exe dist\public
 )
 
 popd
