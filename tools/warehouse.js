@@ -47,7 +47,7 @@ if (process.platform === 'win32') {
   WAREHOUSE_URLBASE = 'https://win-install.meteor.com';
 
   // On Windows, avoid symlinks
-  symlinkOverSync = function (linkTest, file) {
+  symlinkOverSync = function (linkText, file) {
     fs.writeFileSync(file, linkText);
   };
 
