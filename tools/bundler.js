@@ -194,7 +194,7 @@ var rejectBadPath = function (p) {
 };
 
 var stripLeadingSlash = function (p) {
-  if (p.charAt(0) !== '/')
+  if (p.charAt(0) !== path.sep)
     throw new Error("bad path: " + p);
   return p.slice(1);
 };
@@ -351,7 +351,7 @@ _.extend(File.prototype, {
   setTargetPathFromRelPath: function (relPath) {
     var self = this;
     // XXX hack
-    if (relPath.match(/^packages\//) || relPath.match(/^assets\//))
+    if (relPath.match(/^(packages|assets)[\/\\]/))
       self.targetPath = relPath;
     else
       self.targetPath = path.join('app', relPath);
@@ -633,7 +633,7 @@ _.extend(Target.prototype, {
 
           if (resource.type === "js" && isOs) {
             // Hack, but otherwise we'll end up putting app assets on this file.
-            if (resource.servePath !== "/packages/global-imports.js")
+            if (resource.servePath !== path.sep + "packages" + path.sep + "global-imports.js")
               f.setAssets(sliceAssets);
 
             if (! isApp && slice.nodeModulesPath) {
@@ -980,6 +980,16 @@ _.extend(JsImage.prototype, {
             var nodeModuleDir =
               path.join(item.nodeModulesDirectory.sourcePath, name);
 
+            if (process.platform === 'win32') {
+              // Resolve any poor-man's symlinks.
+              // See tools/builder.js for the code that creates these
+              var symlink = item.nodeModulesDirectory.sourcePath + '.symlink';
+              try {
+                nodeModuleDir = path.resolve(fs.readFileSync(symlink, 'utf8'), name);
+              } catch (e) {
+              }
+            }
+
             if (fs.existsSync(nodeModuleDir)) {
               return require(nodeModuleDir);
             }
@@ -1079,7 +1089,7 @@ _.extend(JsImage.prototype, {
         // inside private/) go in assets/app/.
         // XXX same hack as setTargetPathFromRelPath
           var assetBundlePath;
-        if (item.targetPath.match(/^packages\//)) {
+        if (item.targetPath.match(/^packages[\/\\]/)) {
           var dir = path.dirname(item.targetPath);
           var base = path.basename(item.targetPath, ".js");
           assetBundlePath = path.join('assets', dir, base);
@@ -1291,7 +1301,8 @@ _.extend(ServerTarget.prototype, {
     var archToPlatform = {
       'os.linux.x86_32': 'Linux_i686',
       'os.linux.x86_64': 'Linux_x86_64',
-      'os.osx.x86_64': 'Darwin_x86_64'
+      'os.osx.x86_64': 'Darwin_x86_64',
+      'os.windows.x86_32': 'Windows_x86_i686'
     };
     var arch = archinfo.host();
     var platform = archToPlatform[arch];

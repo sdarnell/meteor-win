@@ -265,7 +265,8 @@ var parseStack = function (err) {
       return;
     var m;
     if (m =
-        frame.match(/^\s*at\s*((new )?[^\s]+)\s*\(([^:]*)(:(\d+))?(:(\d+))?\)\s*$/)) {
+        frame.match(/^\s*at\s*((new )?[^\s]+)\s*\((..[^:]*)(:(\d+))?(:(\d+))?\)\s*$/)) {
+      // "    at My.Function (c:\\path\\to\\myfile.js:532:39)"
       // "    at My.Function (/path/to/myfile.js:532:39)"
       // "    at Array.forEach (native)"
       // "    at new My.Class (file.js:1:2)"
@@ -279,7 +280,8 @@ var parseStack = function (err) {
         line: m[5] ? +m[5] : undefined,
         column: m[7] ? +m[7] : undefined
       });
-    } else if (m = frame.match(/^\s*at\s+([^:]+)(:(\d+))?(:(\d+))?\s*$/)) {
+    } else if (m = frame.match(/^\s*at\s+(..[^:]+)(:(\d+))?(:(\d+))?\s*$/)) {
+      // "    at c:\\path\\to\\myfile.js:532:39"
       // "    at /path/to/myfile.js:532:39"
       ret.push({
         file: m[1],

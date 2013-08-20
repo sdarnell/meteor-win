@@ -41,6 +41,24 @@ elif [ "$UNAME" == "Darwin" ] ; then
     stripBinary() {
         true
     }
+elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    UNAME="Windows"
+
+    # Bitness does not matter on Windows, thus we don't check it here.
+
+    # We check that all of the required tools are present for people that want to make a dev bundle on Windows.
+    command -v git >/dev/null 2>&1 || { echo >&2 "I require 'git' but it's not installed. Aborting."; exit 1; }
+    command -v curl >/dev/null 2>&1 || { echo >&2 "I require 'curl' but it's not installed. Aborting."; exit 1; }
+    command -v unzip >/dev/null 2>&1 || { echo >&2 "I require 'unzip' but it's not installed. Aborting."; exit 1; }
+    command -v tar >/dev/null 2>&1 || { echo >&2 "I require 'tar' but it's not installed. Aborting."; exit 1; }
+
+    # XXX Can be adapted to support both 32-bit and 64-bit, currently supports only 32-bit (2 GB memory limit).
+    ARCH="i386"
+    MONGO_OS="win32"
+
+    stripBinary() {
+        true
+    }
 else
     echo "This OS not yet supported"
     exit 1
@@ -60,7 +78,12 @@ if [ -z "$BUNDLE_VERSION" ]; then
 fi
 echo "Building dev bundle $BUNDLE_VERSION"
 
+if command -v mktemp >/dev/null 2>&1 ; then
 DIR=`mktemp -d -t generate-dev-bundle-XXXXXXXX`
+else
+DIR="${TMPDIR-/tmp}/dev-bundle-$RANDOM"
+mkdir "$DIR"
+fi
 trap 'rm -rf "$DIR" >/dev/null 2>&1' 0
 
 echo BUILDING IN "$DIR"
@@ -71,18 +94,45 @@ umask 022
 mkdir build
 cd build
 
-git clone git://github.com/joyent/node.git
-cd node
 # When upgrading node versions, also update the values of MIN_NODE_VERSION at
 # the top of tools/meteor.js and tools/server/server.js, and the text in
 # docs/client/concepts.html and the README in tools/bundler.js.
-git checkout v0.8.24
+NODE_VERSION=v0.8.24
+if [ "$UNAME" == "Windows" ] ; then
+    echo DOWNLOADING NODE.JS
+    echo.
+    cd "$DIR"
+    curl -O http://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-x86.msi
+    
+    echo EXTRACTING NODE.JS
+    echo.
+    $COMSPEC \/c "msiexec -a node-$NODE_VERSION-x86.msi -qb TARGETDIR=\"%CD%\\build\""
+    rm node-$NODE_VERSION-x86.msi
+    
+    # Re-organise files to match expected dev bundle layout
+    mkdir "$DIR/bin"
+    cd build/nodejs
+    cp node.exe npm npm.cmd nodejsvars.bat node_etw_provider.man "$DIR/bin"
+
+    # This is needed for NPM
+    cp -R node_modules "$DIR/bin/node_modules"
+
+    mkdir "$DIR/lib"
+    cp -R node_modules "$DIR/lib/node_modules"
+
+    # XXX Not sure we need to override the NODE_MODULES, but play safe
+    NODE_MODULES="$DIR/lib/node_modules"
+else
+git clone git://github.com/joyent/node.git
+cd node
+git checkout $NODE_VERSION
 
 ./configure --prefix="$DIR"
 make -j4
 make install PORTABLE=1
 # PORTABLE=1 is a node hack to make npm look relative to itself instead
 # of hard coding the PREFIX.
+fi
 
 # export path so we use our new node for later builds
 export PATH="$DIR/bin:$PATH"
@@ -106,7 +156,10 @@ npm install http-proxy@0.10.1  # not 0.10.2, which contains a sketchy websocket 
 npm install underscore@1.5.1
 npm install fstream@0.1.21
 npm install tar@0.1.14
+# kexec isn't supported on windows, but doesn't appear to be needed yet
+if [ "$UNAME" != "Windows" ] ; then
 npm install kexec@0.1.1
+fi
 npm install shell-quote@0.0.1   # now at 1.3.3, which adds plenty of options to parse but doesn't change quote
 npm install byline@2.0.3  # v3 requires node 0.10
 npm install source-map@0.1.26
@@ -137,6 +190,7 @@ rm -rf *
 mv ../$FIBERS_ARCH .
 cd ../..
 
+if [ "$UNAME" != "Windows" ] ; then
 # Checkout and build mongodb.
 # We want to build a binary that includes SSL support but does not depend on a
 # particular version of openssl on the host system.
@@ -156,12 +210,41 @@ else
     ./Configure no-shared zlib-dynamic --prefix="$DIR/build/openssl-out" darwin64-x86_64-cc enable-ec_nistp_64_gcc_128
 fi
 make install
+fi #Windows
 
 # To see the mongo changelog, go to http://www.mongodb.org/downloads,
 # click 'changelog' under the current version, then 'release notes' in
 # the upper right.
 cd "$DIR/build"
 MONGO_VERSION="2.4.4"
+
+if [ "$UNAME" == "Windows" ] ; then
+    cd "$DIR"
+    MONGO_NAME="mongodb-${MONGO_OS}-${ARCH}-${MONGO_VERSION}"
+    MONGO_URL="http://fastdl.mongodb.org/${MONGO_OS}/${MONGO_NAME}.tgz"
+
+    # The Windows distribution of MONGO comes in a different format, unzip accordingly.
+    curl -o mongodb.zip "${MONGO_URL%.tgz}.zip"
+    unzip mongodb.zip
+    rm mongodb.zip
+    
+    # Also download and extract an old WinXP compatible version
+    curl  -o mongodb.zip "http://fastdl.mongodb.org/${MONGO_OS}/mongodb-${MONGO_OS}-${ARCH}-2.0.8.zip"
+    unzip -j mongodb.zip -d "${MONGO_NAME}/bin/xp" "*/mongod.exe"
+    rm mongodb.zip
+
+    # Do the same for the x64 version
+    curl  -o mongodb.zip "http://fastdl.mongodb.org/${MONGO_OS}/mongodb-${MONGO_OS}-x86_64-2008plus-${MONGO_VERSION}.zip"
+    unzip -j mongodb.zip -d "${MONGO_NAME}/bin/x64" "*/mongod.exe"
+    rm mongodb.zip
+
+    mv "$MONGO_NAME" mongodb
+    cd mongodb/bin
+
+    # The Windows distribution of MONGO comes in a different format, we need to specify ".exe" and "monogosniff.exe" misses.
+    rm bsondump.exe mongodump.exe mongoexport.exe mongofiles.exe mongoimport.exe mongorestore.exe mongos.exe mongostat.exe mongotop.exe mongooplog.exe mongoperf.exe
+    rm *.pdb 
+else
 
 # We use Meteor fork since we added some changes to the building script.
 # Our patches allow us to link most of the libraries statically.
@@ -197,6 +280,8 @@ cp mongod "$DIR/mongodb/bin/"
 
 # Copy mongodb distribution information
 find ./distsrc -maxdepth 1 -type f -exec cp '{}' ../mongodb \;
+
+fi
 
 cd "$DIR"
 stripBinary bin/node

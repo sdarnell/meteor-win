@@ -234,10 +234,10 @@ Fiber(function () {
       localPackageDirs.push(path.join(context.appDir, 'packages'));
 
     // Let the user provide additional package directories to search
-    // in PACKAGE_DIRS (colon-separated.)
+    // in PACKAGE_DIRS (colon separated, semi-colon on Windows)
     if (process.env.PACKAGE_DIRS)
       localPackageDirs.push.apply(localPackageDirs,
-                                  process.env.PACKAGE_DIRS.split(':'));
+                                  process.env.PACKAGE_DIRS.split(path.delimiter));
 
     // If we're running out of a git checkout of meteor, use the packages from
     // the git tree.
@@ -1349,6 +1349,11 @@ Fiber(function () {
   var toolsSpringboard = function (extraArgs) {
     if (!context.releaseManifest ||
         context.releaseManifest.tools === files.getToolsVersion())
+      return;
+
+    // Springboarding not supported on windows due to use of kexec
+    // but I suspect we could relatively easily use spawn or execFile
+    if (process.platform === 'win32')
       return;
 
     toolsDebugMessage("springboarding from " + files.getToolsVersion() +

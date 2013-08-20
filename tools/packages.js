@@ -222,7 +222,7 @@ _.extend(Slice.prototype, {
     var addAsset = function (contents, relPath) {
       // XXX hack
       if (!self.pkg.name)
-        relPath = relPath.replace(/^(private|public)\//, '');
+        relPath = relPath.replace(/^(private|public)[\/\\]/, '');
 
       resources.push({
         type: "asset",
@@ -367,7 +367,7 @@ _.extend(Slice.prototype, {
         // XXX duplicates _pathForSourceMap() in linker
         pathForSourceMap: (
           self.pkg.name
-            ? self.pkg.name + "/" + relPath
+            ? path.join(self.pkg.name, relPath)
             : path.basename(relPath)),
         // null if this is an app. intended to be used for the sources
         // dictionary for source maps.
@@ -469,7 +469,7 @@ _.extend(Slice.prototype, {
       inputFiles: js,
       useGlobalNamespace: isApp,
       combinedServePath: isApp ? null :
-        "/packages/" + self.pkg.name +
+        path.sep + "packages" + path.sep + self.pkg.name +
         (self.sliceName === "main" ? "" : (":" + self.sliceName)) + ".js",
       name: self.pkg.name || null,
       declaredExports: _.pluck(self.declaredExports, 'name'),
@@ -571,7 +571,7 @@ _.extend(Slice.prototype, {
       imports: imports,
       useGlobalNamespace: isApp,
       // XXX report an error if there is a package called global-imports
-      importStubServePath: isApp && '/packages/global-imports.js',
+      importStubServePath: isApp && path.sep + 'packages' + path.sep + 'global-imports.js',
       prelinkFiles: self.prelinkFiles,
       noExports: self.noExports,
       packageVariables: self.packageVariables,
@@ -1884,7 +1884,7 @@ _.extend(Package.prototype, {
         });
 
         if (!_.isEmpty(assetDirs)) {
-          if (!_.isEqual(assetDirs, [assetDir + '/']))
+          if (!_.isEqual(assetDirs, [assetDir + path.sep]))
             throw new Error("Surprising assetDirs: " + JSON.stringify(assetDirs));
 
           while (!_.isEmpty(assetDirs)) {
@@ -1903,7 +1903,7 @@ _.extend(Package.prototype, {
             });
 
             _.each(assetsAndSubdirs, function (item) {
-              if (item[item.length - 1] === '/') {
+              if (item[item.length - 1] === path.sep) {
                 // Recurse on this directory.
                 assetDirs.push(item);
               } else {
@@ -2210,7 +2210,7 @@ _.extend(Package.prototype, {
       // These is where we put the NPM dependencies of the slices (but not of
       // plugins). The node_modules directory is nested inside "npm" so that it
       // is not visible from within plugins.
-      builder.reserve("npm/node_modules", { directory: true });
+      builder.reserve(path.join("npm", "node_modules"), { directory: true });
       builder.reserve("head");
       builder.reserve("body");
 
@@ -2271,7 +2271,7 @@ _.extend(Package.prototype, {
             };
           }),
           implies: (_.isEmpty(slice.implies) ? undefined : slice.implies),
-          node_modules: slice.nodeModulesPath ? 'npm/node_modules' : undefined,
+          node_modules: slice.nodeModulesPath ? path.join('npm', 'node_modules') : undefined,
           resources: []
         };
 
@@ -2349,7 +2349,7 @@ _.extend(Package.prototype, {
         if (slice.nodeModulesPath) {
           builder.copyDirectory({
             from: slice.nodeModulesPath,
-            to: 'npm/node_modules'
+            to: path.join('npm', 'node_modules')
           });
         }
 
