@@ -254,7 +254,7 @@ var jobHasMessages = function () {
 // return anything past that function. We call this the "user portion"
 // of the stack.
 var parseStack = function (err) {
-  var frames = err.stack.split('\n');
+  var frames = err.stack.split(/\r?\n/);
 
   frames.shift(); // at least the first line is the exception
   var stop = false;

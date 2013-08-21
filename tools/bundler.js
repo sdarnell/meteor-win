@@ -1329,7 +1329,7 @@ _.extend(ServerTarget.prototype, {
     var devBundleVersion =
       fs.readFileSync(
         path.join(files.get_dev_bundle(), '.bundle_version.txt'), 'utf8');
-    devBundleVersion = devBundleVersion.split('\n')[0];
+    devBundleVersion = devBundleVersion.split(/\r?\n/)[0];
 
     var script = unipackage.load({
       library: self.library,
