@@ -17,7 +17,7 @@ var normalizeSlashes = function (name) {
   if (name.indexOf('/') !== -1) {
     console.log("## normalizeSlashes got forward slash %s", name);
   }
-  return (path.sep === '/') ? name : name.replace('/', path.sep);
+  return (path.sep === '/') ? name : name.replace(/\//g, path.sep);
 };
 
 var fs_symlinkSync = function (targetpath, linkpath) {
