@@ -199,6 +199,9 @@ var stripLeadingSlash = function (p) {
   return p.slice(1);
 };
 
+var toBundleSlashes = function (p) {
+  return (p && path.sep !== '/') ? p.split(path.sep).join('/') : p;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // NodeModulesDirectory
@@ -855,6 +858,9 @@ _.extend(ClientTarget.prototype, {
 
       writeFile(file, builder);
 
+      manifestItem.path = toBundleSlashes(manifestItem.path);
+      manifestItem.sourceMap = toBundleSlashes(manifestItem.sourceMap);
+
       manifest.push(manifestItem);
     });
 
@@ -1107,8 +1113,14 @@ _.extend(JsImage.prototype, {
               builder.writeToGeneratedFilename(
                 path.join(assetBundlePath, relPath), { data: data });
           }
+          loadItem.assets[relPath] = toBundleSlashes(loadItem.assets[relPath]);
         });
       }
+
+      loadItem.path = toBundleSlashes(loadItem.path);
+      loadItem.node_modules = toBundleSlashes(loadItem.node_modules);
+      loadItem.sourceMap = toBundleSlashes(loadItem.sourceMap);
+      loadItem.sourceMapRoot = toBundleSlashes(loadItem.sourceMapRoot);
 
       load.push(loadItem);
     });
@@ -1276,6 +1288,7 @@ _.extend(ServerTarget.prototype, {
       clientTargetPath = path.join(options.getRelativeTargetPath({
         forTarget: self.clientTarget, relativeTo: self}),
                                    'program.json');
+      clientTargetPath = toBundleSlashes(clientTargetPath);
     }
 
     // We will write out config.json, the dependency kit, and the
@@ -1432,7 +1445,7 @@ var writeSiteArchive = function (targets, outputPath, options) {
       json.programs.push({
         name: name,
         arch: target.mostCompatibleArch(),
-        path: path.join(paths[name], relControlFilePath)
+        path: toBundleSlashes(path.join(paths[name], relControlFilePath))
       });
     });
 
