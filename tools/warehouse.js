@@ -41,7 +41,7 @@ var symlinkOverSync = function (linkText, file) {
   fs.renameSync(tmpSymlink, file);
 };
 
-var fs_readLinkSync = fs.readLinkSync;
+var fs_readlinkSync = fs.readlinkSync;
 
 if (process.platform === 'win32') {
   WAREHOUSE_URLBASE = 'https://win-install.meteor.com';
@@ -51,7 +51,7 @@ if (process.platform === 'win32') {
     fs.writeFileSync(file, linkText);
   };
 
-  fs_readLinkSync = function (path) {
+  fs_readlinkSync = function (path) {
     return fs.readFileSync(path, 'utf8');
   };
 }
@@ -114,7 +114,7 @@ _.extend(warehouse, {
     var latestReleaseSymlink = warehouse._latestReleaseSymlinkPath();
     // This throws if the symlink doesn't exist, but it really should, since
     // it exists in bootstrap tarballs and is never deleted.
-    var linkText = fs_readLinkSync(latestReleaseSymlink);
+    var linkText = fs_readlinkSync(latestReleaseSymlink);
     return linkText.replace(/\.release\.json$/, '');
   },
 
@@ -129,7 +129,7 @@ _.extend(warehouse, {
   latestTools: function() {
     var latestToolsSymlink = warehouse._latestToolsSymlinkPath();
     try {
-      return fs_readLinkSync(latestToolsSymlink);
+      return fs_readlinkSync(latestToolsSymlink);
     } catch (e) {
       return null;
     }
