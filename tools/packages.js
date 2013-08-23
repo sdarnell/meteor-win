@@ -1573,9 +1573,12 @@ _.extend(Package.prototype, {
             paths = toArray(paths);
             where = toWhereArray(where);
 
-            _.each(paths, function (path) {
+            _.each(paths, function (p) {
+              if (path.sep !== '/') {
+                p = p.replace(/\//g, path.sep);
+              }
               _.each(where, function (w) {
-                var source = {relPath: path};
+                var source = {relPath: p};
                 if (fileOptions)
                   source.fileOptions = fileOptions;
                 sources[role][w].push(source);
