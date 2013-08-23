@@ -203,6 +203,10 @@ var toBundleSlashes = function (p) {
   return (p && path.sep !== '/') ? p.split(path.sep).join('/') : p;
 };
 
+var fromBundleSlashes = function (p) {
+  return (p && path.sep !== '/') ? p.split('/').join(path.sep) : p;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // NodeModulesDirectory
 ///////////////////////////////////////////////////////////////////////////////
@@ -1163,10 +1167,13 @@ JsImage.readFromDisk = function (controlFilePath) {
 
   _.each(json.load, function (item) {
     rejectBadPath(item.path);
+    item.path = fromBundleSlashes(item.path);
 
     var nmd = undefined;
     if (item.node_modules) {
       rejectBadPath(item.node_modules);
+      item.node_modules = fromBundleSlashes(item.node_modules);
+
       var node_modules = path.join(dir, item.node_modules);
       if (! (node_modules in ret.nodeModulesDirectories)) {
         ret.nodeModulesDirectories[node_modules] =
@@ -1187,6 +1194,9 @@ JsImage.readFromDisk = function (controlFilePath) {
     if (item.sourceMap) {
       // XXX this is the same code as initFromUnipackage
       rejectBadPath(item.sourceMap);
+      item.sourceMap = fromBundleSlashes(item.sourceMap);
+      item.sourceMapRoot = fromBundleSlashes(item.sourceMapRoot);
+
       loadItem.sourceMap = fs.readFileSync(
         path.join(dir, item.sourceMap), 'utf8');
       loadItem.sourceMapRoot = item.sourceMapRoot;
@@ -1195,6 +1205,7 @@ JsImage.readFromDisk = function (controlFilePath) {
     if (!_.isEmpty(item.assets)) {
       loadItem.assets = {};
       _.each(item.assets, function (filename, relPath) {
+        relPath = fromBundleSlashes(relPath);
         loadItem.assets[relPath] = fs.readFileSync(path.join(dir, filename));
       });
     }

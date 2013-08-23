@@ -49,6 +49,14 @@ var parseSpec = function (spec) {
   return ret;
 };
 
+var toBundleSlashes = function (p) {
+  return (p && path.sep !== '/') ? p.split(path.sep).join('/') : p;
+};
+
+var fromBundleSlashes = function (p) {
+  return (p && path.sep !== '/') ? p.split('/').join(path.sep) : p;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // Slice
 ///////////////////////////////////////////////////////////////////////////////
@@ -2017,6 +2025,7 @@ _.extend(Package.prototype, {
 
     _.each(mainJson.plugins, function (pluginMeta) {
       rejectBadPath(pluginMeta.path);
+      pluginMeta.path = fromBundleSlashes(pluginMeta.path);
 
       var plugin = bundler.readJsImage(path.join(dir, pluginMeta.path));
 
@@ -2044,6 +2053,8 @@ _.extend(Package.prototype, {
       // aggressively sanitize path (don't let it escape to parent
       // directory)
       rejectBadPath(sliceMeta.path);
+      sliceMeta.path = fromBundleSlashes(sliceMeta.path);
+
       var sliceJson = JSON.parse(
         fs.readFileSync(path.join(dir, sliceMeta.path)));
       var sliceBasePath = path.dirname(path.join(dir, sliceMeta.path));
@@ -2055,6 +2066,8 @@ _.extend(Package.prototype, {
       var nodeModulesPath = null;
       if (sliceJson.node_modules) {
         rejectBadPath(sliceJson.node_modules);
+        sliceJson.node_modules = fromBundleSlashes(sliceJson.node_modules);
+
         nodeModulesPath = path.join(sliceBasePath, sliceJson.node_modules);
       }
 
@@ -2075,6 +2088,10 @@ _.extend(Package.prototype, {
 
       _.each(sliceJson.resources, function (resource) {
         rejectBadPath(resource.file);
+        resource.file = fromBundleSlashes(resource.file);
+        resource.path = fromBundleSlashes(resource.path);
+        resource.servePath = fromBundleSlashes(resource.servePath);
+        resource.sourceMap = fromBundleSlashes(resource.sourceMap);
 
         var data = new Buffer(resource.length);
         // Read the data from disk, if it is non-empty. Avoid doing IO for empty
@@ -2094,6 +2111,7 @@ _.extend(Package.prototype, {
         }
 
         if (resource.type === "prelink") {
+          // rejectBadPath(resource.servePath); ???
           var prelinkFile = {
             source: data.toString('utf8'),
             servePath: resource.servePath
@@ -2106,6 +2124,7 @@ _.extend(Package.prototype, {
           slice.prelinkFiles.push(prelinkFile);
         } else if (_.contains(["head", "body", "css", "js", "asset"],
                               resource.type)) {
+          // rejectBadPath(resource.path); ???
           slice.resources.push({
             type: resource.type,
             data: data,
@@ -2250,7 +2269,7 @@ _.extend(Package.prototype, {
         mainJson.slices.push({
           name: slice.sliceName,
           arch: slice.arch,
-          path: sliceJsonFile
+          path: toBundleSlashes(sliceJsonFile)
         });
 
         // Save slice dependencies. Keyed by the json path rather than thinking
@@ -2278,6 +2297,8 @@ _.extend(Package.prototype, {
           resources: []
         };
 
+        sliceJson.node_modules = toBundleSlashes(sliceJson.node_modules);
+
         // Output 'head', 'body' resources nicely
         var concat = {head: [], body: []};
         var offset = {head: 0, body: 0};
@@ -2291,7 +2312,7 @@ _.extend(Package.prototype, {
               throw new Error("Resource data must be a Buffer");
             sliceJson.resources.push({
               type: resource.type,
-              file: path.join(sliceDir, resource.type),
+              file: toBundleSlashes(path.join(sliceDir, resource.type)),
               length: resource.data.length,
               offset: offset[resource.type]
             });
@@ -2314,13 +2335,13 @@ _.extend(Package.prototype, {
 
           sliceJson.resources.push({
             type: resource.type,
-            file: builder.writeToGeneratedFilename(
+            file: toBundleSlashes(builder.writeToGeneratedFilename(
               path.join(sliceDir, resource.servePath),
-              { data: resource.data }),
+              { data: resource.data })),
             length: resource.data.length,
             offset: 0,
-            servePath: resource.servePath || undefined,
-            path: resource.path || undefined
+            servePath: toBundleSlashes(resource.servePath || undefined),
+            path: toBundleSlashes(resource.path || undefined)
           });
         });
 
@@ -2329,20 +2350,20 @@ _.extend(Package.prototype, {
           var data = new Buffer(file.source, 'utf8');
           var resource = {
             type: 'prelink',
-            file: builder.writeToGeneratedFilename(
+            file: toBundleSlashes(builder.writeToGeneratedFilename(
               path.join(sliceDir, file.servePath),
-              { data: data }),
+              { data: data })),
             length: data.length,
             offset: 0,
-            servePath: file.servePath || undefined
+            servePath: toBundleSlashes(file.servePath || undefined)
           };
 
           if (file.sourceMap) {
             // Write the source map.
-            resource.sourceMap = builder.writeToGeneratedFilename(
+            resource.sourceMap = toBundleSlashes(builder.writeToGeneratedFilename(
               path.join(sliceDir, file.servePath + '.map'),
               { data: new Buffer(file.sourceMap, 'utf8') }
-            );
+            ));
           }
 
           sliceJson.resources.push(resource);
@@ -2369,7 +2390,7 @@ _.extend(Package.prototype, {
         mainJson.plugins.push({
           name: name,
           arch: plugin.arch,
-          path: path.join(pluginDir, relPath)
+          path: toBundleSlashes(path.join(pluginDir, relPath))
         });
       });
 
