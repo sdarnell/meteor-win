@@ -1351,11 +1351,6 @@ Fiber(function () {
         context.releaseManifest.tools === files.getToolsVersion())
       return;
 
-    // Springboarding not supported on windows due to use of kexec
-    // but I suspect we could relatively easily use spawn or execFile
-    if (process.platform === 'win32')
-      return;
-
     toolsDebugMessage("springboarding from " + files.getToolsVersion() +
                       " to " + context.releaseManifest.tools);
 
@@ -1367,6 +1362,24 @@ Fiber(function () {
                 'bin', 'meteor'));
     if (extraArgs)
       newArgv.push.apply(newArgv, extraArgs);
+
+    if (process.platform === 'win32') {
+      var toolsRoot = warehouse.getToolsDir(context.releaseManifest.tools);
+
+      // Invoking the batch file results in multiple console prompts
+      // when pressing Ctrl+C. So invoke node directly.
+      newArgv.unshift(path.join(toolsRoot, 'bin', 'node.exe'));
+      newArgv[1] = path.join(toolsRoot, 'tools', 'meteor.js');
+      process.env['NODE_PATH'] = path.join(toolsRoot, 'lib', 'node_modules');
+
+      var ret = new Future();
+      var child = cp.spawn(newArgv[0], newArgv.slice(1),
+        { env: process.env, stdio: 'inherit' });
+      child.on('exit', function (code) {
+        ret.return(code);
+      });
+      process.exit(ret.wait());
+    }
 
     // Now shell quote this (because kexec wants to use /bin/sh -c) and execvp.
     // XXX fork kexec and make it take an array instead of using shell
