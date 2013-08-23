@@ -52,6 +52,7 @@ var doOrDie = function (errorMessage, f) {
   try {
     return f();
   } catch (e) {
+    console.log("Error: ", e);
     die(errorMessage);
   }
 };

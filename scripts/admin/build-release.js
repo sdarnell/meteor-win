@@ -171,12 +171,37 @@ var buildPackageTarballs = function () {
       if (manifest !== '') {
         manifest += ',\n';
       }
-      var output = execFileSync('git', ['ls-tree', 'HEAD', PACKAGE]);
-      var PACKAGE_VERSION = sha1(output);
+
+      var buildinfoPath = path.join(PACKAGE, '.build', 'buildinfo.json');
+      var buildinfoRaw = fs.readFileSync(buildinfoPath);
+
+      var munged = _.map(buildinfoRaw.toString().split(/\r?\n/), function (line) {
+        line = line.replace(process.cwd(), ''); // Once should be fine
+        line = line.replace(/os\..*\.json/g, 'os.json');
+      }).join('\n');
+
+      var PACKAGE_VERSION = sha1(munged);
       console.log('- %s version %s', PACKAGE, PACKAGE_VERSION);
 
+      // We now need to create a tarball excluding the buildinfo.json file.
+      // Ideally I'd like to add an exclude option to createTarball(), but for
+      // now work-around it by temporarily deleting it.
+      fs.unlinkSync(buildinfoPath);
+
+      // The root directory of the package should also be the package id
+      // achieve this by temporarily renaming the .build directory.
+      // Maybe taking a copy would be better.
+      var packageTmp = path.join(PACKAGE, PACKAGE + '-' + PACKAGE_VERSION + '-' + PLATFORM);
+      fs.renameSync(path.join(PACKAGE, '.build'), packageTmp);
+
       var tarball = path.join(OUTDIR, PACKAGE + '-' + PACKAGE_VERSION + '-' + PLATFORM + '.tar.gz');
-      files.createTarball(PACKAGE, tarball);
+      files.createTarball(packageTmp, tarball);
+
+      fs.renameSync(packageTmp, path.join(PACKAGE, '.build'));
+
+      // Put the buildinfo.json file back
+      fs.writeFileSync(buildinfoPath, buildinfoRaw);
+
       manifest += '    "' + PACKAGE + '": "' + PACKAGE_VERSION + '"';
     }
   });
@@ -207,7 +232,8 @@ var main = function() {
     '  "tools": "' + TOOLS_VERSION + '",',
     '  "packages": {',
     MANIFEST_PACKAGE_CHUNK,
-    '  }',
+    '  },',
+    '  "upgraders": ["app-packages"]',
     '}'
   ].join('\n');
 
