@@ -20,10 +20,10 @@
           "version": "0.2.9"
         },
         "source-map": {
-          "version": "0.1.26",
+          "version": "0.1.29",
           "dependencies": {
             "amdefine": {
-              "version": "0.0.5"
+              "version": "0.0.8"
             }
           }
         },

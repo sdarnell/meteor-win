@@ -235,7 +235,7 @@ var readDirectory = function (options) {
       }
       throw e;
     }
-    // XXX if we're on windows, I guess it's possible for files to end with '/'.
+    // XXX if we're on windows, I guess it's possible for files to end with '/'. (nope, it isn't)
     if (stats.isDirectory())
       entry += '/';
     contentsWithSlashes.push(entry);
