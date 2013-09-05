@@ -1,4 +1,4 @@
-﻿// Executable to launch meteor after bootstrapping the local warehouse
+// Executable to launch meteor after bootstrapping the local warehouse
 //
 // Copyright 2013 Stephen Darnell
 
@@ -9,6 +9,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Text;
 using System.Threading;
 
@@ -165,21 +166,22 @@ namespace LaunchMeteor
             var stream = new MemoryStream(download.Result);
             download = null;
 
-            var tempDir = warehouse + "-install-tmp";
+            var tempDir = warehouse + "~";
             if (File.Exists(tempDir))
                 File.Delete(tempDir);
-            if (Directory.Exists(tempDir))
-                Directory.Delete(tempDir, true);
+            DirectoryDelete(tempDir);
             
             try
             {
-                ExtractTgz(stream, tempDir);
-                Directory.Move(Path.Combine(tempDir, ".meteor"), warehouse);
+                var regex = new Regex(@"^\.meteor\\");
+                ExtractTgz(stream, tempDir, p => regex.Replace(p, ""));
+
+                Directory.Move(tempDir, warehouse);
             }
-            finally
+            catch
             {
-                if (Directory.Exists(tempDir))
-                    Directory.Delete(tempDir, true);
+                DirectoryDelete(tempDir);
+                throw;
             }
             Console.WriteLine("Files extracted successfully\n");
 
@@ -192,6 +194,21 @@ namespace LaunchMeteor
                 Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User);
             }
         }
+        
+        private static void DirectoryDelete(string path)
+        {
+            for (int attempt = 1; Directory.Exists(path) && attempt <= 5; attempt++)
+            {
+                Console.WriteLine("Deleting directory: {0}", path);
+                try { Directory.Delete(path, true); } catch {}
+                if (Directory.Exists(path))
+                    Thread.Sleep(1000);
+            }
+            
+            // Throw the exception
+            if (Directory.Exists(path))
+                Directory.Delete(path, true);
+        }
 
         #endregion
 
@@ -201,11 +218,11 @@ namespace LaunchMeteor
         {
             using (var fileStream = File.OpenRead(archive))
             {
-                ExtractTgz(fileStream, targetDirectory);
+                ExtractTgz(fileStream, targetDirectory, p => p);
             }
         }
 
-        public static void ExtractTgz(Stream stream, string directory)
+        public static void ExtractTgz(Stream stream, string directory, Func<string, string> transform)
         {
             int totalFiles = 0, totalData = 0;
             var buffer = new byte[512];
@@ -247,24 +264,33 @@ namespace LaunchMeteor
                         if (("\\" + path + "\\").Contains("\\..\\"))
                             throw new InvalidDataException("Filenames containing '..' are not allowed");
 
-                        path = Path.Combine(directory, path);
-                        Directory.CreateDirectory(Path.GetDirectoryName(path));
-                        using (var fstream = new FileStream(path, FileMode.CreateNew))
+                        path = Path.Combine(directory, transform(path));
+                        try
                         {
-                            if (type == TarType.Lnk || type == TarType.Sym)
+                            Directory.CreateDirectory(Path.GetDirectoryName(path));
+                            using (var fstream = new FileStream(path, FileMode.CreateNew))
                             {
-                                var data = Encoding.UTF8.GetBytes(link);
-                                fstream.Write(data, 0, data.Length);
-                                length = 0;
-                            }
+                                if (type == TarType.Lnk || type == TarType.Sym)
+                                {
+                                    var data = Encoding.UTF8.GetBytes(link);
+                                    fstream.Write(data, 0, data.Length);
+                                    length = 0;
+                                }
 
-                            totalData += length;
-                            for (; length > 0; length -= buffer.Length)
-                            {
-                                if (decompressed.Read(buffer, 0, buffer.Length) != buffer.Length)
-                                    throw new InvalidDataException("Unexpected end of TAR file");
-                                fstream.Write(buffer, 0, Math.Min(length, buffer.Length));
+                                totalData += length;
+                                for (; length > 0; length -= buffer.Length)
+                                {
+                                    if (decompressed.Read(buffer, 0, buffer.Length) != buffer.Length)
+                                        throw new InvalidDataException("Unexpected end of TAR file");
+                                    fstream.Write(buffer, 0, Math.Min(length, buffer.Length));
+                                }
                             }
+                        }
+                        catch
+                        {
+                            Console.WriteLine();
+                            Console.WriteLine("Error processing path: {0}", path);
+                            throw;
                         }
                     }
                 }

@@ -180,7 +180,7 @@ var buildPackageTarballs = function () {
         line = line.replace(/os\..*\.json/g, 'os.json');
       }).join('\n');
 
-      var PACKAGE_VERSION = sha1(munged);
+      var PACKAGE_VERSION = sha1(munged).slice(0, 10);
       console.log('- %s version %s', PACKAGE, PACKAGE_VERSION);
 
       // We now need to create a tarball excluding the buildinfo.json file.

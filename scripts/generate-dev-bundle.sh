@@ -112,9 +112,10 @@ if [ "$UNAME" == "Windows" ] ; then
     # Re-organise files to match expected dev bundle layout
     mkdir "$DIR/bin"
     cd build/nodejs
-    cp node.exe npm npm.cmd nodejsvars.bat node_etw_provider.man "$DIR/bin"
+    cp node.exe npm nodejsvars.bat node_etw_provider.man "$DIR/bin"
+    cp "$TARGET_DIR/scripts/windows/npm.cmd" "$DIR/bin"
 
-    # This is needed for NPM
+    # This is needed for NPM but deleted afterwards
     cp -R node_modules "$DIR/bin/node_modules"
 
     mkdir "$DIR/lib"
