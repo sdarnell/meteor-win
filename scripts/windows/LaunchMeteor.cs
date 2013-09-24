@@ -134,6 +134,7 @@ namespace LaunchMeteor
             var barWidth = Console.WindowWidth - 5;
             using (var client = new WebClient())
             {
+                client.UseDefaultCredentials = true;
                 client.DownloadProgressChanged += (sender, e) =>
                     {
                         var sb = new StringBuilder();
@@ -170,7 +171,7 @@ namespace LaunchMeteor
             if (File.Exists(tempDir))
                 File.Delete(tempDir);
             DirectoryDelete(tempDir);
-            
+
             try
             {
                 var regex = new Regex(@"^\.meteor\\");
@@ -194,7 +195,7 @@ namespace LaunchMeteor
                 Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User);
             }
         }
-        
+
         private static void DirectoryDelete(string path)
         {
             for (int attempt = 1; Directory.Exists(path) && attempt <= 5; attempt++)
@@ -204,7 +205,7 @@ namespace LaunchMeteor
                 if (Directory.Exists(path))
                     Thread.Sleep(1000);
             }
-            
+
             // Throw the exception
             if (Directory.Exists(path))
                 Directory.Delete(path, true);
