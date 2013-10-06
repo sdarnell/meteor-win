@@ -16,6 +16,7 @@ var _ = require('underscore');
 
 var files = require('../../tools/files.js');
 var warehouse = require('../../tools/warehouse.js');
+var httpHelpers = require('../../tools/http-helpers.js');
 
 var sleep = function(ms) {
   var fiber = Fiber.current;
@@ -210,7 +211,10 @@ var main = function () {
     die("usage: node build-bootstrap.js RELEASE_NAME");
   }
 
-  files.getUrl = replacementGetUrl;
+  if (!httpHelpers.getUrl) {
+    die("Failed to override httpHelpers.getUrl");
+  }
+  httpHelpers.getUrl = replacementGetUrl;
 
   var releaseName = process.argv[2];
 
