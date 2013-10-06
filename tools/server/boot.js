@@ -90,6 +90,16 @@ Fiber(function () {
         var nodeModuleDir =
           path.resolve(serverDir, fileInfo.node_modules, name);
 
+        if (process.platform === 'win32') {
+          // Resolve any poor-man's symlinks.
+          // See tools/builder.js for the code that creates these
+          var symlink = path.resolve(serverDir, fileInfo.node_modules) + '.symlink';
+          try {
+            nodeModuleDir = path.resolve(fs.readFileSync(symlink, 'utf8'), name);
+          } catch (e) {
+          }
+        }
+
         if (fs.existsSync(nodeModuleDir)) {
           return require(nodeModuleDir);
           }

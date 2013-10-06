@@ -11,6 +11,30 @@ var sha1 = function (contents) {
   return hash.digest('hex');
 };
 
+// Check file names are using the right slashes.
+// TODO: Remove if not needed (appears not to be).
+var normalizeSlashes = function (name) {
+  if (name.indexOf('/') !== -1) {
+    console.log("## normalizeSlashes got forward slash %s", name);
+  }
+  return (path.sep === '/') ? name : name.replace(/\//g, path.sep);
+};
+
+var fs_symlinkSync = function (targetpath, linkpath) {
+  if (process.platform === 'win32') {
+    // Symlinks/junctions are problematic on Windows: not supported on some
+    // filesystems, limited by permissions, broken in node 8.18, no built-in
+    // command to create them on XP, not all apps do sensible things etc.
+    // For node issue, see: https://github.com/joyent/node/issues/4952
+    // Luckily, they are only used in limited ways in the bundle, so use a
+    // simple text file redirect. See server/boot.js and tools/bundler.js
+    // for the code to indirect via the symlink files.
+    fs.writeFileSync(linkpath + '.symlink', fs.realpathSync(targetpath));
+  } else {
+    fs.symlinkSync(targetpath, linkpath);
+  }
+};
+
 // Builder encapsulates much of the file-handling logic need to create
 // "bundles" (directory trees such as site archives, programs, or
 // packages.) It can create a temporary directory in which to build
@@ -65,7 +89,8 @@ _.extend(Builder.prototype, {
   _ensureDirectory: function (relPath) {
     var self = this;
 
-    var parts = path.normalize(relPath).split(path.sep);
+    relPath = normalizeSlashes(relPath);
+    var parts = relPath.split(path.sep);
     if (parts.length > 1 && parts[parts.length - 1] === '')
       parts.pop(); // remove trailing slash
 
@@ -91,6 +116,7 @@ _.extend(Builder.prototype, {
   _sanitize: function (relPath, isDirectory) {
     var self = this;
 
+    relPath = normalizeSlashes(relPath);
     var parts = relPath.split(path.sep);
     var partsOut = [];
     for (var i = 0; i < parts.length; i++) {
@@ -157,6 +183,8 @@ _.extend(Builder.prototype, {
     var self = this;
     options = options || {};
 
+    relPath = normalizeSlashes(relPath);
+
     // Ensure no trailing slash
     if (relPath.slice(-1) === path.sep)
       relPath = relPath.slice(0, -1);
@@ -197,6 +225,8 @@ _.extend(Builder.prototype, {
   writeJson: function (relPath, data) {
     var self = this;
 
+    relPath = normalizeSlashes(relPath);
+
     // Ensure no trailing slash
     if (relPath.slice(-1) === path.sep)
       relPath = relPath.slice(0, -1);
@@ -221,6 +251,8 @@ _.extend(Builder.prototype, {
   reserve: function (relPath, options) {
     var self = this;
     options = options || {};
+
+    relPath = normalizeSlashes(relPath);
 
     // Ensure no trailing slash
     if (relPath.slice(-1) === path.sep)
@@ -303,6 +335,7 @@ _.extend(Builder.prototype, {
     options = options || {};
 
     var normOptionsTo = options.to;
+    normOptionsTo = normalizeSlashes(normOptionsTo);
     if (normOptionsTo.slice(-1) === path.sep)
       normOptionsTo = normOptionsTo.slice(0, -1);
 
@@ -331,7 +364,7 @@ _.extend(Builder.prototype, {
 
       if (canSymlink) {
         self._ensureDirectory(path.dirname(normOptionsTo));
-        fs.symlinkSync(path.resolve(options.from), absPathTo);
+        fs_symlinkSync(path.resolve(options.from), absPathTo);
         return;
       }
     }
@@ -404,7 +437,7 @@ _.extend(Builder.prototype, {
         if (method === "generateFilename") {
           // fix up the returned path to be relative to the
           // sub-bundle, not the parent bundle
-          if (ret.substr(0, 1) === '/')
+          if (ret.substr(0, 1) === path.sep)
             ret = ret.substr(1);
           if (ret.substr(0, relPathWithSep.length) !== relPathWithSep)
             throw new Error("generateFilename returned path outside of " +

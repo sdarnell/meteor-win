@@ -174,6 +174,12 @@ _.extend(exports, {
     fs.writeFileSync(
       path.join(newPackageNpmDir, '.gitignore'),
       ['node_modules', ''/*git diff complains without trailing newline*/].join('\n'));
+
+    // create a .gitattributes to ensure git diff expects what was generated.
+    fs.writeFileSync(
+      path.join(newPackageNpmDir, '.gitattributes'),
+      ['/npm-shrinkwrap.json eol=lf', '/README eol=lf', '/.git* eol=lf',
+      ''/*git diff complains without trailing newline*/].join('\n'));
   },
 
   _updateExistingNpmDirectory: function(
@@ -324,6 +330,10 @@ _.extend(exports, {
   // for clean exit with exit code 0, else false)
   _execFileSync: function(file, args, opts) {
     var self = this;
+
+    if (process.platform === 'win32' && /\\bin\\npm$/.test(file))
+      file += ".cmd";
+
     if (self._printNpmCalls) // only used by test_bundler.js
       process.stdout.write('cd ' + opts.cwd + ' && ' + file + ' ' + args.join(' ') + ' ... ');
 

@@ -12,6 +12,10 @@ var manifestUrl = testingUpdater
       ? 'https://s3.amazonaws.com/com.meteor.static/test/update/manifest.json'
       : 'https://update.meteor.com/manifest.json';
 
+if (process.platform === 'win32') {
+  manifestUrl = 'https://win-install.meteor.com/manifest.json';
+}
+
 /**
  * Downloads the current manifest file and returns it via a callback (or
  * null on error)

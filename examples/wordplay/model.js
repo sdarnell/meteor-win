@@ -129,7 +129,7 @@ Meteor.methods({
 
 if (Meteor.isServer) {
   DICTIONARY = {};
-  _.each(Assets.getText("enable2k.txt").split("\n"), function (line) {
+  _.each(Assets.getText("enable2k.txt").split(/\r?\n/), function (line) {
     // Skip blanks and comment lines
     if (line && line.indexOf("//") !== 0) {
       DICTIONARY[line] = true;
