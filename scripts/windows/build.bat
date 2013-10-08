@@ -11,9 +11,6 @@ rem Remove additional copy of npm node_modules
 rd /s/q dev_bundle\bin\node_modules
 
 rem Remove some excessive paths from the dev bundle
-rd /s/q dev_bundle\lib\node_modules\npm\node_modules\node-gyp\node_modules\request\node_modules\form-data\node_modules\combined-stream\node_modules\delayed-stream\test
-rd /s/q dev_bundle\lib\node_modules\npm\node_modules\node-gyp\node_modules\request\node_modules\form-data\node_modules\combined-stream\test
-
 rd /s/q dev_bundle\lib\node_modules\npm\node_modules\request\node_modules\form-data\node_modules\combined-stream\node_modules\delayed-stream\test
 rd /s/q dev_bundle\lib\node_modules\npm\node_modules\request\node_modules\form-data\node_modules\combined-stream\test
 
