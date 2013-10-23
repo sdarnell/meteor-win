@@ -94,7 +94,7 @@ umask 022
 mkdir build
 cd build
 
-NODE_VERSION=v0.10.20
+NODE_VERSION=v0.10.21
 if [ "$UNAME" == "Windows" ] ; then
     echo DOWNLOADING NODE.JS
     echo.
