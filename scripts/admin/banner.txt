@@ -1,4 +1,5 @@
-=> Meteor 0.6.6.1: Fix file watching on OSX (work around Node issue #6251)
+=> Meteor 0.6.6.3: Fix CPU runaway while watching files in large
+   projects and occasional server crash on session disconnect.
 
-   This is being downloaded in the background. Update your project
-   to Meteor 0.6.6.1 by running 'meteor update'.
+   This release is being downloaded in the background. Update your
+   project to Meteor 0.6.6.3 by running 'meteor update'.
