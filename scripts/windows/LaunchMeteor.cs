@@ -13,6 +13,14 @@ using System.Text.RegularExpressions;
 using System.Text;
 using System.Threading;
 
+[assembly: AssemblyTitle("Meteor bootstrapper and launcher")]
+[assembly: AssemblyDescription("Downloads the Meteor bootstrap package and launches it")]
+[assembly: AssemblyCompany("Stephen Darnell")]
+[assembly: AssemblyProduct("Meteor")]
+[assembly: AssemblyCopyright("Copyright 2013 Stephen Darnell")]
+[assembly: AssemblyVersion("0.2.0.0")]
+[assembly: AssemblyFileVersion("0.2.0.0")]
+
 namespace LaunchMeteor
 {
     class Program
@@ -134,6 +142,10 @@ namespace LaunchMeteor
             var barWidth = Console.WindowWidth - 5;
             using (var client = new WebClient())
             {
+                if (client.Proxy != null)
+                {
+                    client.Proxy.Credentials = CredentialCache.DefaultCredentials;
+                }
                 client.UseDefaultCredentials = true;
                 client.DownloadProgressChanged += (sender, e) =>
                     {
