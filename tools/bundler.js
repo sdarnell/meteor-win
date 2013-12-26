@@ -197,11 +197,18 @@ var rejectBadPath = function (p) {
 };
 
 var stripLeadingSlash = function (p) {
-  if (p.charAt(0) !== '/')
+  if (p.charAt(0) !== path.sep)
     throw new Error("bad path: " + p);
   return p.slice(1);
 };
 
+var toBundleSlashes = function (p) {
+  return (p && path.sep !== '/') ? p.split(path.sep).join('/') : p;
+};
+
+var fromBundleSlashes = function (p) {
+  return (p && path.sep !== '/') ? p.split('/').join(path.sep) : p;
+};
 
 ///////////////////////////////////////////////////////////////////////////////
 // NodeModulesDirectory
@@ -354,7 +361,7 @@ _.extend(File.prototype, {
   setTargetPathFromRelPath: function (relPath) {
     var self = this;
     // XXX hack
-    if (relPath.match(/^packages\//) || relPath.match(/^assets\//))
+    if (relPath.match(/^(packages|assets)[\/\\]/))
       self.targetPath = relPath;
     else
       self.targetPath = path.join('app', relPath);
@@ -635,7 +642,7 @@ _.extend(Target.prototype, {
 
           if (resource.type === "js" && isOs) {
             // Hack, but otherwise we'll end up putting app assets on this file.
-            if (resource.servePath !== "/packages/global-imports.js")
+            if (resource.servePath !== path.sep + "packages" + path.sep + "global-imports.js")
               f.setAssets(sliceAssets);
 
             if (! isApp && slice.nodeModulesPath) {
@@ -877,6 +884,9 @@ _.extend(ClientTarget.prototype, {
 
       writeFile(file, builder);
 
+      manifestItem.path = toBundleSlashes(manifestItem.path);
+      manifestItem.sourceMap = toBundleSlashes(manifestItem.sourceMap);
+
       manifest.push(manifestItem);
     });
 
@@ -1002,6 +1012,16 @@ _.extend(JsImage.prototype, {
             var nodeModuleDir =
               path.join(item.nodeModulesDirectory.sourcePath, name);
 
+            if (process.platform === 'win32') {
+              // Resolve any poor-man's symlinks.
+              // See tools/builder.js for the code that creates these
+              var symlink = item.nodeModulesDirectory.sourcePath + '.symlink';
+              try {
+                nodeModuleDir = path.resolve(fs.readFileSync(symlink, 'utf8'), name);
+              } catch (e) {
+              }
+            }
+
             if (fs.existsSync(nodeModuleDir)) {
               return require(nodeModuleDir);
             }
@@ -1101,7 +1121,7 @@ _.extend(JsImage.prototype, {
         // inside private/) go in assets/app/.
         // XXX same hack as setTargetPathFromRelPath
           var assetBundlePath;
-        if (item.targetPath.match(/^packages\//)) {
+        if (item.targetPath.match(/^packages[\/\\]/)) {
           var dir = path.dirname(item.targetPath);
           var base = path.basename(item.targetPath, ".js");
           assetBundlePath = path.join('assets', dir, base);
@@ -1119,8 +1139,14 @@ _.extend(JsImage.prototype, {
               builder.writeToGeneratedFilename(
                 path.join(assetBundlePath, relPath), { data: data });
           }
+          loadItem.assets[relPath] = toBundleSlashes(loadItem.assets[relPath]);
         });
       }
+
+      loadItem.path = toBundleSlashes(loadItem.path);
+      loadItem.node_modules = toBundleSlashes(loadItem.node_modules);
+      loadItem.sourceMap = toBundleSlashes(loadItem.sourceMap);
+      loadItem.sourceMapRoot = toBundleSlashes(loadItem.sourceMapRoot);
 
       load.push(loadItem);
     });
@@ -1163,10 +1189,13 @@ JsImage.readFromDisk = function (controlFilePath) {
 
   _.each(json.load, function (item) {
     rejectBadPath(item.path);
+    item.path = fromBundleSlashes(item.path);
 
     var nmd = undefined;
     if (item.node_modules) {
       rejectBadPath(item.node_modules);
+      item.node_modules = fromBundleSlashes(item.node_modules);
+
       var node_modules = path.join(dir, item.node_modules);
       if (! (node_modules in ret.nodeModulesDirectories)) {
         ret.nodeModulesDirectories[node_modules] =
@@ -1187,6 +1216,9 @@ JsImage.readFromDisk = function (controlFilePath) {
     if (item.sourceMap) {
       // XXX this is the same code as initFromUnipackage
       rejectBadPath(item.sourceMap);
+      item.sourceMap = fromBundleSlashes(item.sourceMap);
+      item.sourceMapRoot = fromBundleSlashes(item.sourceMapRoot);
+
       loadItem.sourceMap = fs.readFileSync(
         path.join(dir, item.sourceMap), 'utf8');
       loadItem.sourceMapRoot = item.sourceMapRoot;
@@ -1195,6 +1227,7 @@ JsImage.readFromDisk = function (controlFilePath) {
     if (!_.isEmpty(item.assets)) {
       loadItem.assets = {};
       _.each(item.assets, function (filename, relPath) {
+        relPath = fromBundleSlashes(relPath);
         loadItem.assets[relPath] = fs.readFileSync(path.join(dir, filename));
       });
     }
@@ -1288,6 +1321,7 @@ _.extend(ServerTarget.prototype, {
       clientTargetPath = path.join(options.getRelativeTargetPath({
         forTarget: self.clientTarget, relativeTo: self}),
                                    'program.json');
+      clientTargetPath = toBundleSlashes(clientTargetPath);
     }
 
     // We will write out config.json, the dependency kit, and the
@@ -1313,7 +1347,8 @@ _.extend(ServerTarget.prototype, {
     var archToPlatform = {
       'os.linux.x86_32': 'Linux_i686',
       'os.linux.x86_64': 'Linux_x86_64',
-      'os.osx.x86_64': 'Darwin_x86_64'
+      'os.osx.x86_64': 'Darwin_x86_64',
+      'os.windows.x86_32': 'Windows_x86_i686'
     };
     var arch = archinfo.host();
     var platform = archToPlatform[arch];
@@ -1327,7 +1362,7 @@ _.extend(ServerTarget.prototype, {
     var devBundleVersion =
       fs.readFileSync(
         path.join(files.get_dev_bundle(), '.bundle_version.txt'), 'utf8');
-    devBundleVersion = devBundleVersion.split('\n')[0];
+    devBundleVersion = devBundleVersion.split(/\r?\n/)[0];
 
     var script = unipackage.load({
       library: self.library,
@@ -1450,7 +1485,7 @@ var writeSiteArchive = function (targets, outputPath, options) {
       json.programs.push({
         name: name,
         arch: target.mostCompatibleArch(),
-        path: path.join(paths[name], relControlFilePath)
+        path: toBundleSlashes(path.join(paths[name], relControlFilePath))
       });
     });
 

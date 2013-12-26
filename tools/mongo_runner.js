@@ -1,6 +1,6 @@
 var fs = require("fs");
 var path = require("path");
-
+var os = require("os");
 var files = require('./files.js');
 
 var _ = require('underscore');
@@ -44,6 +44,55 @@ var find_mongo_pids = function (app_dir, port, callback) {
     });
 };
 
+if (process.platform === 'win32') {
+  var child_process = require('child_process');
+  // Windows doesn't have a ps quivalent that (reliably) includes the command
+  // line, so approximate using the combined output of tasklist and netstat.
+  find_mongo_pids = function (app_dir, port, callback) {
+    child_process.exec('tasklist /fi "IMAGENAME eq mongod.exe"',
+      function (error, stdout, stderr) {
+        if (error) {
+          callback({reason: error});
+        } else {
+          // Find the pids of all mongod processes
+          var mongo_pids = [];
+          _.each(stdout.split('\n'), function (ps_line) {
+            var m = ps_line.match(/^mongod.exe\s+(\d+) /);
+            if (m) {
+              mongo_pids[m[1]] = true;
+            }
+          });
+
+          // Now get the corresponding port numbers
+          child_process.exec('netstat -ano', function (error, stdout, stderr) {
+            if (error) {
+              callback({reason: error});
+            } else {
+              var pids = [];
+              _.each(stdout.split('\n'), function (ps_line) {
+                var m = ps_line.match(/^\s*TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)/);
+                if (m) {
+                  var found_pid =  parseInt(m[2]);
+                  var found_port = parseInt(m[1]);
+
+                  // We can't check the path app_dir so assume it always matches
+                  if (mongo_pids[found_pid] && (!port || port === found_port)) {
+                    // Note that if the mongo rest interface is enabled the
+                    // initial port + 1000 is also likely to be open.
+                    // So remove the pid so we only match it once.
+                    delete mongo_pids[found_pid];
+                    pids.push({pid: found_pid, port: found_port, app_dir: null});
+                  }
+                }
+              });
+
+              callback(null, pids);
+            }
+          });
+        }
+      });
+  };
+}
 
 // See if mongo is running already. Callback takes a single argument,
 // 'port', which is the port mongo is running on or null if mongo is not
@@ -145,6 +194,17 @@ exports.launchMongo = function (options) {
                               'mongodb',
                               'bin',
                               'mongod');
+
+  if (process.platform === 'win32') {
+    // Use a different mongod on various platforms
+    if (os.release().slice(0, 2) === '5.') { // WinXP, 2000 and 2003
+      mongod_path = mongod_path.replace(/mongod$/, path.join('xp', 'mongod'));
+    } else if (os.release().slice(0, 4) === '6.0.') {
+      // The best 64-bit mongodb doesn't support Vista or 2008 R1, so use 32-bit
+    } else if (process.env['ProgramW6432']) {
+      mongod_path = mongod_path.replace(/mongod$/, path.join('x64', 'mongod'));
+    }
+  }
 
   // store data in app_dir
   var dbPath = path.join(options.context.appDir, '.meteor', 'local', 'db');

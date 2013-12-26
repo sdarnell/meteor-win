@@ -234,10 +234,10 @@ Fiber(function () {
       localPackageDirs.push(path.join(context.appDir, 'packages'));
 
     // Let the user provide additional package directories to search
-    // in PACKAGE_DIRS (colon-separated.)
+    // in PACKAGE_DIRS (colon separated, semi-colon on Windows)
     if (process.env.PACKAGE_DIRS)
       localPackageDirs.push.apply(localPackageDirs,
-                                  process.env.PACKAGE_DIRS.split(':'));
+                                  process.env.PACKAGE_DIRS.split(path.delimiter));
 
     // If we're running out of a git checkout of meteor, use the packages from
     // the git tree.
@@ -1370,6 +1370,24 @@ Fiber(function () {
                 'bin', 'meteor'));
     if (extraArgs)
       newArgv.push.apply(newArgv, extraArgs);
+
+    if (process.platform === 'win32') {
+      var toolsRoot = warehouse.getToolsDir(context.releaseManifest.tools);
+
+      // Invoking the batch file results in multiple console prompts
+      // when pressing Ctrl+C. So invoke node directly.
+      newArgv.unshift(path.join(toolsRoot, 'bin', 'node.exe'));
+      newArgv[1] = path.join(toolsRoot, 'tools', 'meteor.js');
+      process.env['NODE_PATH'] = path.join(toolsRoot, 'lib', 'node_modules');
+
+      var ret = new Future();
+      var child = cp.spawn(newArgv[0], newArgv.slice(1),
+        { env: process.env, stdio: 'inherit' });
+      child.on('exit', function (code) {
+        ret.return(code);
+      });
+      process.exit(ret.wait());
+    }
 
     // Now shell quote this (because kexec wants to use /bin/sh -c) and execvp.
     // XXX fork kexec and make it take an array instead of using shell
