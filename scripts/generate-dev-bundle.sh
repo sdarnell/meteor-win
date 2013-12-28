@@ -94,7 +94,7 @@ umask 022
 mkdir build
 cd build
 
-NODE_VERSION=v0.10.21
+NODE_VERSION=v0.10.22
 if [ "$UNAME" == "Windows" ] ; then
     echo DOWNLOADING NODE.JS
     echo.
@@ -163,7 +163,10 @@ npm install shell-quote@0.0.1   # now at 1.3.3, which adds plenty of options to 
 npm install eachline@2.3.3
 npm install source-map@0.1.30
 npm install source-map-support@0.2.3
+# bcrypt has additional (awkward) dependencies and is not used yet
+if [ "$UNAME" != "Windows" ] ; then
 npm install bcrypt@0.7.7
+fi
 
 # Using the unreleased "caronte" branch rewrite of http-proxy (which will become
 # 1.0.0), plus this PR:
