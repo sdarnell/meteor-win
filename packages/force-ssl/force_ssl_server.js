@@ -19,14 +19,15 @@ httpServer.addListener('request', function (req, res) {
 
   var remoteAddress =
         req.connection.remoteAddress || req.socket.remoteAddress;
+  var localhostRegexp = /\s*(127\.0\.0\.1|::1)\s*/;
   // Determine if the connection is only over localhost. Both we
   // received it on localhost, and all proxies involved received on
   // localhost.
   var isLocal = (
-    remoteAddress === "127.0.0.1" &&
+    localhostRegexp.test(remoteAddress) &&
       (!req.headers['x-forwarded-for'] ||
        _.all(req.headers['x-forwarded-for'].split(','), function (x) {
-         return /\s*127\.0\.0\.1\s*/.test(x);
+         return localhostRegexp.test(x);
        })));
 
   // Determine if the connection was over SSL at any point. Either we
