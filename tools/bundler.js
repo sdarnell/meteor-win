@@ -1509,7 +1509,7 @@ var writeSiteArchive = function (targets, outputPath, options) {
       builder.write('README', { data: new Buffer(
 "This is a Meteor application bundle. It has only one dependency:\n" +
 "Node.js 0.10 (with the 'fibers' package). The current release of Meteor\n" +
-"has been tested with Node 0.10.21. To run the application:\n" +
+"has been tested with Node 0.10.22. To run the application:\n" +
 "\n" +
 "  $ rm -r programs/server/node_modules/fibers\n" +
 "  $ npm install fibers@1.0.1\n" +
