@@ -18,8 +18,8 @@ using System.Threading;
 [assembly: AssemblyCompany("Stephen Darnell")]
 [assembly: AssemblyProduct("Meteor")]
 [assembly: AssemblyCopyright("Copyright 2013 Stephen Darnell")]
-[assembly: AssemblyVersion("0.2.0.0")]
-[assembly: AssemblyFileVersion("0.2.0.0")]
+[assembly: AssemblyVersion("0.2.0.1")]
+[assembly: AssemblyFileVersion("0.2.0.1")]
 
 namespace LaunchMeteor
 {
@@ -29,10 +29,23 @@ namespace LaunchMeteor
 
         private const string METEOR_WAREHOUSE_DIR = "METEOR_WAREHOUSE_DIR";
 
-        private static bool looksLikeNewConsole = Console.CursorLeft == 0 && Console.CursorTop == 0;
+        private static bool looksLikeNewConsole = false;
+        private static int consoleWindowWidth = 80;
+
+        private static void InitialiseConsoleInfo()
+        {
+            // Try/catch needed when not connected to a console
+            try
+            {
+                looksLikeNewConsole = Console.CursorLeft == 0 && Console.CursorTop == 0;
+                consoleWindowWidth = Console.WindowWidth;
+            } catch {}
+        }
 
         static void Main(string[] args)
         {
+            InitialiseConsoleInfo();
+
             // Avoid console vanishing without warning if invoked from a non-console app
             AppDomain.CurrentDomain.UnhandledException += (sender, handlerArgs) =>
                 {
