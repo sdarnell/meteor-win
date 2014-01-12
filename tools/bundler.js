@@ -1131,6 +1131,7 @@ _.extend(JsImage.prototype, {
 
         loadItem.assets = {};
         _.each(item.assets, function (data, relPath) {
+          relPath = toBundleSlashes(relPath);
           var sha = Builder.sha1(data);
           if (_.has(assetFilesBySha, sha)) {
             loadItem.assets[relPath] = assetFilesBySha[sha];
@@ -1227,7 +1228,7 @@ JsImage.readFromDisk = function (controlFilePath) {
     if (!_.isEmpty(item.assets)) {
       loadItem.assets = {};
       _.each(item.assets, function (filename, relPath) {
-        relPath = fromBundleSlashes(relPath);
+        // relPath should stay with forwards slashes
         loadItem.assets[relPath] = fs.readFileSync(path.join(dir, filename));
       });
     }
