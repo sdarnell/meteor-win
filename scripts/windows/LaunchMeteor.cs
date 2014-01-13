@@ -1,6 +1,6 @@
 // Executable to launch meteor after bootstrapping the local warehouse
 //
-// Copyright 2013 Stephen Darnell
+// Copyright 2013 - 2014 Stephen Darnell
 
 using System;
 using System.Collections.Generic;
@@ -17,7 +17,7 @@ using System.Threading;
 [assembly: AssemblyDescription("Downloads the Meteor bootstrap package and launches it")]
 [assembly: AssemblyCompany("Stephen Darnell")]
 [assembly: AssemblyProduct("Meteor")]
-[assembly: AssemblyCopyright("Copyright 2013 Stephen Darnell")]
+[assembly: AssemblyCopyright("Copyright 2013 - 2014 Stephen Darnell")]
 [assembly: AssemblyVersion("0.2.0.1")]
 [assembly: AssemblyFileVersion("0.2.0.1")]
 
@@ -25,10 +25,12 @@ namespace LaunchMeteor
 {
     class Program
     {
-        private const string BOOTSTRAP_URL = "https://win-install.meteor.com/bootstrap/meteor-bootstrap-Windows_i686.tar.gz";
+        private const string BOOTSTRAP_FILE = "meteor-bootstrap-Windows_i686.tar.gz";
+        private const string BOOTSTRAP_URL = "https://win-install.meteor.com/bootstrap/" + BOOTSTRAP_FILE;
 
         private const string METEOR_WAREHOUSE_DIR = "METEOR_WAREHOUSE_DIR";
 
+        private static string bootstrapFile = null;
         private static bool looksLikeNewConsole = false;
         private static int consoleWindowWidth = 80;
 
@@ -52,6 +54,11 @@ namespace LaunchMeteor
                     Console.WriteLine("Unexpected exception: {0}", handlerArgs.ExceptionObject);
                     Exit(1);
                 };
+            
+            if (args.Length == 1 && args[0] == "-downloaded")
+            {
+                bootstrapFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, BOOTSTRAP_FILE);
+            }
 
             // Check if we're running from a git checkout
             var root = AppDomain.CurrentDomain.BaseDirectory;
@@ -147,12 +154,12 @@ namespace LaunchMeteor
 
         #region Boostrap the warehouse
 
-        private static void BootstrapWarehouse(string warehouse)
+        private static MemoryStream DownloadBoostrapFile()
         {
             Console.WriteLine("Downloading initial Meteor files...");
             DownloadDataCompletedEventArgs download = null;
             var complete = new AutoResetEvent(false);
-            var barWidth = Console.WindowWidth - 5;
+            var barWidth = consoleWindowWidth - 5;
             using (var client = new WebClient())
             {
                 if (client.Proxy != null)
@@ -182,15 +189,44 @@ namespace LaunchMeteor
             if (download.Result.Length < 10 * 1024 * 1024 ||
                 (download.Result[0] != 0x1f || download.Result[1] != 0x8b))
             {
-                Console.WriteLine("Unexpected data returned from: {0}", BOOTSTRAP_URL);
-                Exit(1);
+                throw new InvalidDataException("Unexpected data returned from: " + BOOTSTRAP_URL);
             }
 
             Console.WriteLine("   \rDownload complete ({0:#.#} MB)", download.Result.Length / (1024.0 * 1024.0));
-            Console.WriteLine("Extracting files to {0}", warehouse);
 
             var stream = new MemoryStream(download.Result);
             download = null;
+            return stream;
+        }
+
+        private static void BootstrapWarehouse(string warehouse)
+        {
+            MemoryStream stream;
+            if (bootstrapFile != null)
+            {
+                var data = File.ReadAllBytes(bootstrapFile);
+                stream = new MemoryStream(data);
+                data = null;
+            }
+            else
+            {
+                try
+                {
+                    stream = DownloadBoostrapFile();
+                }
+                catch (Exception)
+                {
+                    Console.WriteLine("\nERROR: A problem occurred while downloading the bootstrap package.");
+                    Console.WriteLine("\nIf this persists, you can download it manually from:");
+                    Console.WriteLine("  " + BOOTSTRAP_URL);
+                    Console.WriteLine("and put it in the same directory as LaunchMeteor.exe and run:");
+                    Console.WriteLine("  LaunchMeteor.exe -downloaded");
+                    Console.WriteLine("\nHere are some details of the error:");
+                    throw;
+                }
+            }
+
+            Console.WriteLine("Extracting files to {0}", warehouse);
 
             var tempDir = warehouse + "~";
             if (File.Exists(tempDir))
