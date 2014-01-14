@@ -176,8 +176,10 @@ var buildPackageTarballs = function () {
       var buildinfoRaw = fs.readFileSync(buildinfoPath);
 
       var munged = _.map(buildinfoRaw.toString().split(/\r?\n/), function (line) {
+        line = line.replace('\\\\', '\\'); // json will escape the backslashes in Windows paths
         line = line.replace(process.cwd(), ''); // Once should be fine
         line = line.replace(/os\..*\.json/g, 'os.json');
+        return line;
       }).join('\n');
 
       var PACKAGE_VERSION = sha1(munged).slice(0, 10);
