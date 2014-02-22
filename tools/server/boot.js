@@ -5,6 +5,26 @@ var Future = require(path.join("fibers", "future"));
 var _ = require('underscore');
 var sourcemap_support = require('source-map-support');
 
+if (process.platform === 'win32') {
+  // To prevent output being lost, force console writes to be synchronous.
+  var syncWrite = function (chunk, enc, cb) {
+    if (typeof enc === 'function') {
+      cb = enc;
+      enc = null;
+    }
+    if (typeof chunk === 'string') {
+      fs.writeSync(this.fd, chunk, null, enc);
+    } else {
+      fs.writeSync(this.fd, chunk, 0, chunk.length);
+    }
+    if (cb) process.nextTick(cb);
+    return true;
+  };
+
+  process.stdout.write = syncWrite;
+  process.stderr.write = syncWrite;
+}
+
 // This code is duplicated in tools/meteor.js.
 var MIN_NODE_VERSION = 'v0.10.22';
 
