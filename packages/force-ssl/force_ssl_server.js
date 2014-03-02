@@ -19,7 +19,6 @@ httpServer.addListener('request', function (req, res) {
 
   var remoteAddress =
         req.connection.remoteAddress || req.socket.remoteAddress;
-  var localhostRegexp = /\s*(127\.0\.0\.1|::1)\s*/;
   // Determine if the connection is only over localhost. Both we
   // received it on localhost, and all proxies involved received on
   // localhost.
