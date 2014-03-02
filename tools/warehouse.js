@@ -42,6 +42,21 @@ var symlinkOverSync = function (linkText, file) {
   fs.renameSync(tmpSymlink, file);
 };
 
+var fs_readlinkSync = fs.readlinkSync;
+
+if (process.platform === 'win32') {
+  WAREHOUSE_URLBASE = 'https://win-install.meteor.com';
+
+  // On Windows, avoid symlinks
+  symlinkOverSync = function (linkText, file) {
+    fs.writeFileSync(file, linkText);
+  };
+
+  fs_readlinkSync = function (path) {
+    return fs.readFileSync(path, 'utf8');
+  };
+}
+
 var warehouse = exports;
 _.extend(warehouse, {
   // An exception meaning that you asked for a release that doesn't
@@ -62,6 +77,11 @@ _.extend(warehouse, {
     // set)
     if (!files.usesWarehouse())
       throw new Error("There's no warehouse in a git checkout");
+
+    if (process.platform === 'win32') {
+      var home = process.env.LOCALAPPDATA || process.env.APPDATA;
+      return path.join(home, '.meteor');
+    }
 
     return path.join(process.env.HOME, '.meteor');
   },
@@ -104,7 +124,7 @@ _.extend(warehouse, {
     var latestReleaseSymlink = warehouse._latestReleaseSymlinkPath();
     // This throws if the symlink doesn't exist, but it really should, since
     // it exists in bootstrap tarballs and is never deleted.
-    var linkText = fs.readlinkSync(latestReleaseSymlink);
+    var linkText = fs_readlinkSync(latestReleaseSymlink);
     return linkText.replace(/\.release\.json$/, '');
   },
 
@@ -119,7 +139,7 @@ _.extend(warehouse, {
   latestTools: function () {
     var latestToolsSymlink = warehouse._latestToolsSymlinkPath();
     try {
-      return fs.readlinkSync(latestToolsSymlink);
+      return fs_readlinkSync(latestToolsSymlink);
     } catch (e) {
       return null;
     }
@@ -496,6 +516,11 @@ _.extend(warehouse, {
       arch = "x86_64";
     else
       throw new Error("Unsupported architecture " + arch);
-    return os.type() + "_" + arch;
+
+    var type = os.type();
+    if (type === "Windows_NT")
+      type = "Windows";
+
+    return type + "_" + arch;
   }
 });
