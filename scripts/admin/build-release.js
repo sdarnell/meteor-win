@@ -91,8 +91,7 @@ var buildToolsTree = function (TARGET_DIR) {
   // Script is not actually used, but it's nice to distribute it for users.
   cp(path.join('scripts', 'admin', 'launch-meteor'), TARGET_DIR);
 
-  console.log('Trimming tests and unfinished examples');
-  files.rm_recursive(path.join(TARGET_DIR, 'tools', 'tests'));
+  console.log('Trimming unfinished examples');
   files.rm_recursive(path.join(TARGET_DIR, 'examples', 'unfinished'));
   files.rm_recursive(path.join(TARGET_DIR, 'examples', 'other'));
 
@@ -166,7 +165,7 @@ var buildPackageTarballs = function () {
 
   var manifest = '';
   process.chdir('packages');
-  _.each(fs.readdirSync('.'), function (PACKAGE) {
+  _.each(fs.readdirSync('.').sort(), function (PACKAGE) {
     if (fs.existsSync(path.join(PACKAGE, 'package.js'))) {
       if (manifest !== '') {
         manifest += ',\n';
