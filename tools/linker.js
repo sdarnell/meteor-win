@@ -49,7 +49,7 @@ _.extend(Module.prototype, {
     var maxInFile = [];
     _.each(self.files, function (file) {
       var m = 0;
-      _.each(file.source.split('\n'), function (line) {
+      _.each(file.source.split(/\r?\n/), function (line) {
         if (line.length <= ignoreOver && line.length > m)
           m = line.length;
       });
@@ -351,7 +351,7 @@ _.extend(File.prototype, {
 
     var numberifyLines = function (f) {
       var num = 1;
-      var lines = self.source.split('\n');
+      var lines = self.source.split(/\r?\n/);
       _.each(lines, function (line) {
         var suffix = "\n";
 
@@ -363,7 +363,7 @@ _.extend(File.prototype, {
       });
     };
 
-    var lines = self.source.split('\n');
+    var lines = self.source.split(/\r?\n/);
 
     if (self.sourceMap) {
       var buf = "";
