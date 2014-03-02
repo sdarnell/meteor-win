@@ -160,7 +160,10 @@ npm install kexec@0.2.0
 fi
 npm install source-map@0.1.32
 npm install source-map-support@0.2.5
+# bcrypt has awkward OpenSSL dependencies on windows, but it isn't needed yet
+if [ "$UNAME" != "Windows" ] ; then
 npm install bcrypt@0.7.7
+fi
 npm install http-proxy@1.0.2
 npm install heapdump@0.2.5
 
