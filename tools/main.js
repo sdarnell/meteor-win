@@ -4,6 +4,7 @@ if (showRequireProfile)
 
 var _ = require('underscore');
 var Fiber = require('fibers');
+var Future = require('fibers/future');
 var files = require('./files.js');
 var path = require('path');
 var warehouse = require('./warehouse.js');
@@ -308,8 +309,9 @@ var springboard = function (toolsVersion, releaseOverride) {
     // Invoking the batch file results in multiple console prompts
     // when pressing Ctrl+C. So invoke node directly.
     // TODO: We could now use LaunchMeteor.exe instead.
-    newArgv.unshift(path.join(toolsRoot, 'bin', 'node.exe'));
-    if (path.existsSync(path.join(toolsRoot, 'tools', 'main.js'))) {
+    newArgv = process.argv;
+    newArgv[0] = path.join(toolsRoot, 'bin', 'node.exe');
+    if (fs.existsSync(path.join(toolsRoot, 'tools', 'main.js'))) {
       newArgv[1] = path.join(toolsRoot, 'tools', 'main.js');
     } else {
       newArgv[1] = path.join(toolsRoot, 'tools', 'meteor.js'); // pre-0.7.1
@@ -317,7 +319,7 @@ var springboard = function (toolsVersion, releaseOverride) {
     process.env['NODE_PATH'] = path.join(toolsRoot, 'lib', 'node_modules');
 
     var ret = new Future();
-    var child = cp.spawn(newArgv[0], newArgv.slice(1),
+    var child = require("child_process").spawn(newArgv[0], newArgv.slice(1),
       { env: process.env, stdio: 'inherit' });
     child.on('exit', function (code) {
       ret.return(code);
