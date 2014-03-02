@@ -20,17 +20,6 @@ var watch = require('./watch.js');
 
 var files = exports;
 
-if (process.platform === 'win32') {
-  var Fiber = require('fibers');
-  var sleep = function(ms) {
-    var fiber = Fiber.current;
-    setTimeout(function() {
-      fiber.run();
-    }, ms);
-    Fiber.yield();
-  };
-}
-
 var parsedSourceMaps = {};
 var nextStackFilenameCounter = 1;
 var retrieveSourceMap = function (pathForSourceMap) {
