@@ -97,7 +97,7 @@ namespace LaunchMeteor
             var tools = Path.Combine(Path.Combine(warehouse, "tools"), latest);
 
             Environment.SetEnvironmentVariable("NODE_PATH", Path.Combine(tools, "lib\\node_modules"));
-            if (File.Exists(Path.Combine(tools, "tools\\main.js"))
+            if (File.Exists(Path.Combine(tools, "tools\\main.js")))
                 Exec(Path.Combine(tools, "bin\\node.exe"), Path.Combine(tools, "tools\\main.js"), args);
             else // pre-0.7.1, initial js file was meteor.js
                 Exec(Path.Combine(tools, "bin\\node.exe"), Path.Combine(tools, "tools\\meteor.js"), args);
