@@ -9,17 +9,19 @@ using System.IO;
 using System.IO.Compression;
 using System.Net;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Text.RegularExpressions;
 using System.Text;
 using System.Threading;
+using Microsoft.Win32.SafeHandles;
 
 [assembly: AssemblyTitle("Meteor bootstrapper and launcher")]
 [assembly: AssemblyDescription("Downloads the Meteor bootstrap package and launches it")]
 [assembly: AssemblyCompany("Stephen Darnell")]
 [assembly: AssemblyProduct("Meteor")]
 [assembly: AssemblyCopyright("Copyright 2013 - 2014 Stephen Darnell")]
-[assembly: AssemblyVersion("0.3.0.0")]
-[assembly: AssemblyFileVersion("0.3.0.0")]
+[assembly: AssemblyVersion("0.3.1.0")]
+[assembly: AssemblyFileVersion("0.3.1.0")]
 
 namespace LaunchMeteor
 {
@@ -264,15 +266,18 @@ namespace LaunchMeteor
         {
             for (int attempt = 1; Directory.Exists(path) && attempt <= 5; attempt++)
             {
-                Console.WriteLine("Deleting directory: {0}", path);
-                try { Directory.Delete(path, true); } catch {}
+                if (attempt == 1)
+                    Console.WriteLine("Deleting directory: {0}", path);
+                else
+                    Console.WriteLine("Deleting directory: {0} attempt {1}", path, attempt);
+                try { RecursiveDeleteDirectory(path); } catch {}
                 if (Directory.Exists(path))
                     Thread.Sleep(1000);
             }
 
             // Throw the exception
             if (Directory.Exists(path))
-                Directory.Delete(path, true);
+                RecursiveDeleteDirectory(path);
         }
 
         #endregion
@@ -332,8 +337,8 @@ namespace LaunchMeteor
                         path = Path.Combine(directory, transform(path));
                         try
                         {
-                            Directory.CreateDirectory(Path.GetDirectoryName(path));
-                            using (var fstream = new FileStream(path, FileMode.CreateNew))
+                            CreateDirectory(GetDirectoryName(path));
+                            using (var fstream = CreateWritableFile(path))
                             {
                                 if (type == TarType.Lnk || type == TarType.Sym)
                                 {
@@ -373,5 +378,202 @@ namespace LaunchMeteor
         }
 
         #endregion
+
+        // Get directory name (supporting long file names)
+        private static string GetDirectoryName(string path)
+        {
+            path = path.Replace('/', '\\');
+            int pos = path.LastIndexOf('\\');
+            return (pos >= 0) ? path.Substring(0, pos) : null;
+        }
+
+        // Create a file, supporting long file names
+        private static FileStream CreateWritableFile(string path)
+        {
+            SafeFileHandle handle = NativeMethods.CreateFile(@"\\?\" + path,
+                EFileAccess.GenericWrite, EFileShare.None, IntPtr.Zero,
+                ECreationDisposition.CreateAlways, 0, IntPtr.Zero);
+
+            int error = Marshal.GetLastWin32Error();
+            if (handle.IsInvalid)
+                throw new System.ComponentModel.Win32Exception(error);
+
+            // Pass the file handle to FileStream. FileStream will close it.
+            return new FileStream(handle, FileAccess.Write);
+        }
+        
+        // Create a directory, supporting long file names
+        private static void CreateDirectory(string path)
+        {
+            bool result = NativeMethods.CreateDirectory(@"\\?\" + path, IntPtr.Zero);
+            int error = Marshal.GetLastWin32Error();
+            if (result || error == NativeMethods.ERROR_ALREADY_EXISTS)
+                return;
+            
+            if (error != NativeMethods.ERROR_PATH_NOT_FOUND)
+                throw new System.ComponentModel.Win32Exception(error);
+
+            // Try to create parent first, before trying again
+            CreateDirectory(GetDirectoryName(path));
+            CreateDirectory(path);
+        }
+        
+        private static void RecursiveDeleteDirectory(string path)
+        {
+            path = path.TrimEnd('\\');
+            IntPtr INVALID_HANDLE_VALUE = new IntPtr(-1);
+            WIN32_FIND_DATA findData;
+            IntPtr handle = NativeMethods.FindFirstFile(@"\\?\" + path + @"\*", out findData);
+            if (handle != INVALID_HANDLE_VALUE)
+            {
+                for (bool more = true; more; more = NativeMethods.FindNextFile(handle, out findData))
+                {
+                    string name = findData.cFileName; 
+                    if (((int)findData.dwFileAttributes & NativeMethods.FILE_ATTRIBUTE_DIRECTORY) != 0)
+                    {
+                        if (name != "." && name != "..")
+                            RecursiveDeleteDirectory(Path.Combine(path, name));
+                    }
+                    else
+                    {
+                        if (!NativeMethods.DeleteFile(@"\\?\" + Path.Combine(path, name)))
+                        {
+                            int error = Marshal.GetLastWin32Error();
+                            throw new System.ComponentModel.Win32Exception(error);
+                        }
+                    }
+                }
+            } 
+            NativeMethods.FindClose(handle);
+            
+            if (!NativeMethods.RemoveDirectory(@"\\?\" + path))
+            {
+                int error = Marshal.GetLastWin32Error();
+                throw new System.ComponentModel.Win32Exception(error);
+            }
+        }
+    }
+
+    // PInvoke support for long file names
+    
+    internal static class NativeMethods
+    {
+        public const int FILE_ATTRIBUTE_DIRECTORY = 0x00000010;
+
+        public const int ERROR_PATH_NOT_FOUND = 3;
+        public const int ERROR_ALREADY_EXISTS = 183; 
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        internal static extern SafeFileHandle CreateFile(
+            string lpFileName,
+            EFileAccess dwDesiredAccess,
+            EFileShare dwShareMode,
+            IntPtr lpSecurityAttributes,
+            ECreationDisposition dwCreationDisposition,
+            EFileAttributes dwFlagsAndAttributes,
+            IntPtr hTemplateFile);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool DeleteFile(string lpFileName);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool CreateDirectory(string lpPathName, IntPtr lpSecurityAttributes);
+
+        [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool RemoveDirectory(string lpPathName);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        internal static extern IntPtr FindFirstFile(string lpFileName, out WIN32_FIND_DATA lpFindFileData);
+
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
+        internal static extern bool FindNextFile(IntPtr hFindFile, out WIN32_FIND_DATA lpFindFileData);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        internal static extern bool FindClose(IntPtr hFindFile);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct FILETIME
+    {
+        internal uint dwLowDateTime;
+        internal uint dwHighDateTime;
+    };
+
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    internal struct WIN32_FIND_DATA
+    {
+        internal EFileAttributes dwFileAttributes;
+        internal FILETIME ftCreationTime;
+        internal FILETIME ftLastAccessTime;
+        internal FILETIME ftLastWriteTime;
+        internal int nFileSizeHigh;
+        internal int nFileSizeLow;
+        internal int dwReserved0;
+        internal int dwReserved1;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)]
+        internal string cFileName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 14)]
+        internal string cAlternate;
+    }
+
+    [Flags]
+    public enum EFileAccess : uint
+    {
+        GenericRead = 0x80000000,
+        GenericWrite = 0x40000000,
+        GenericExecute = 0x20000000,
+        GenericAll = 0x10000000,
+    }
+
+    [Flags]
+    public enum EFileShare : uint
+    {
+        None = 0x00000000,
+        Read = 0x00000001,
+        Write = 0x00000002,
+        Delete = 0x00000004,
+    }
+
+    public enum ECreationDisposition : uint
+    {
+        New = 1,
+        CreateAlways = 2,
+        OpenExisting = 3,
+        OpenAlways = 4,
+        TruncateExisting = 5,
+    }
+
+    [Flags]
+    public enum EFileAttributes : uint
+    {
+        Readonly = 0x00000001,
+        Hidden = 0x00000002,
+        System = 0x00000004,
+        Directory = 0x00000010,
+        Archive = 0x00000020,
+        Device = 0x00000040,
+        Normal = 0x00000080,
+        Temporary = 0x00000100,
+        SparseFile = 0x00000200,
+        ReparsePoint = 0x00000400,
+        Compressed = 0x00000800,
+        Offline = 0x00001000,
+        NotContentIndexed = 0x00002000,
+        Encrypted = 0x00004000,
+        Write_Through = 0x80000000,
+        Overlapped = 0x40000000,
+        NoBuffering = 0x20000000,
+        RandomAccess = 0x10000000,
+        SequentialScan = 0x08000000,
+        DeleteOnClose = 0x04000000,
+        BackupSemantics = 0x02000000,
+        PosixSemantics = 0x01000000,
+        OpenReparsePoint = 0x00200000,
+        OpenNoRecall = 0x00100000,
+        FirstPipeInstance = 0x00080000
     }
 }
