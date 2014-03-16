@@ -19,7 +19,7 @@
 // { t: 'Tag',
 //   isEnd: Boolean (optional),
 //   isSelfClosing: Boolean (optional),
-//   n: String (tag name, ASCII-lowercased),
+//   n: String (tag name, in lowercase or camel case),
 //   attrs: { String: [zero or more 'Chars' or 'CharRef' objects] }
 //     (only for start tags; required)
 // }
@@ -53,7 +53,7 @@ var convertCRLF = function (str) {
   return str.replace(/\r\n?/g, '\n');
 };
 
-getComment = function (scanner) {
+getComment = HTMLTools.Parse.getComment = function (scanner) {
   if (scanner.rest().slice(0, 4) !== '<!--')
     return null;
   scanner.pos += 4;
@@ -121,8 +121,8 @@ var getDoctypeQuotedString = function (scanner) {
 // See http://www.whatwg.org/specs/web-apps/current-work/multipage/syntax.html#the-doctype.
 //
 // If `getDocType` sees "<!DOCTYPE" (case-insensitive), it will match or fail fatally.
-getDoctype = function (scanner) {
-  if (HTML.asciiLowerCase(scanner.rest().slice(0, 9)) !== '<!doctype')
+getDoctype = HTMLTools.Parse.getDoctype = function (scanner) {
+  if (HTMLTools.asciiLowerCase(scanner.rest().slice(0, 9)) !== '<!doctype')
     return null;
   var start = scanner.pos;
   scanner.pos += 9;
@@ -141,7 +141,7 @@ getDoctype = function (scanner) {
     name += ch;
     scanner.pos++;
   }
-  name = HTML.asciiLowerCase(name);
+  name = HTMLTools.asciiLowerCase(name);
 
   // Now we're looking at a space or a `>`.
   skipSpaces(scanner);
@@ -154,7 +154,7 @@ getDoctype = function (scanner) {
     // but we're not looking at space or `>`.
 
     // this should be "public" or "system".
-    var publicOrSystem = HTML.asciiLowerCase(scanner.rest().slice(0, 6));
+    var publicOrSystem = HTMLTools.asciiLowerCase(scanner.rest().slice(0, 6));
 
     if (publicOrSystem === 'system') {
       scanner.pos += 6;
@@ -205,7 +205,7 @@ var getChars = makeRegexMatcher(/^[^&<\u0000][^&<\u0000{]*/);
 // consumes characters and emits nothing (e.g. in the case of template
 // comments), we may go from not-at-EOF to at-EOF and return `null`,
 // while otherwise we always find some token to return.
-getHTMLToken = function (scanner, dataMode) {
+getHTMLToken = HTMLTools.Parse.getHTMLToken = function (scanner, dataMode) {
   var result = null;
   if (scanner.getSpecialTag) {
     var lastPos = -1;
@@ -377,7 +377,7 @@ var getUnquotedAttributeValue = function (scanner) {
   }
 };
 
-getTagToken = function (scanner) {
+getTagToken = HTMLTools.Parse.getTagToken = function (scanner) {
   if (! (scanner.peek() === '<' && scanner.rest().charAt(1) !== '!'))
     return null;
   scanner.pos++;
@@ -393,7 +393,7 @@ getTagToken = function (scanner) {
   var tagName = getTagName(scanner);
   if (! tagName)
     scanner.fatal("Expected tag name after `<`");
-  tag.n = HTML.asciiLowerCase(tagName);
+  tag.n = HTMLTools.properCaseTagName(tagName);
 
   if (scanner.peek() === '/' && tag.isEnd)
     scanner.fatal("End tag can't have trailing slash");
@@ -450,7 +450,7 @@ getTagToken = function (scanner) {
       // allow it, so who cares.
       if (attributeName.indexOf('{') >= 0)
         scanner.fatal("Unexpected `{` in attribute name.");
-      attributeName = HTML.asciiLowerCase(attributeName);
+      attributeName = HTMLTools.properCaseAttributeName(attributeName);
 
       if (tag.attrs.hasOwnProperty(attributeName))
         scanner.fatal("Duplicate attribute in tag: " + attributeName);
@@ -506,7 +506,7 @@ getTagToken = function (scanner) {
   }
 };
 
-TEMPLATE_TAG_POSITION = {
+TEMPLATE_TAG_POSITION = HTMLTools.TEMPLATE_TAG_POSITION = {
   ELEMENT: 1,
   IN_START_TAG: 2,
   IN_ATTRIBUTE: 3,
@@ -514,13 +514,13 @@ TEMPLATE_TAG_POSITION = {
   IN_RAWTEXT: 5
 };
 
-// tagName is lowercase
+// tagName must be proper case
 isLookingAtEndTag = function (scanner, tagName) {
   var rest = scanner.rest();
   var pos = 0; // into rest
   var firstPart = /^<\/([a-zA-Z]+)/.exec(rest);
   if (firstPart &&
-      HTML.asciiLowerCase(firstPart[1]) === tagName) {
+      HTMLTools.properCaseTagName(firstPart[1]) === tagName) {
     // we've seen `</foo`, now see if the end tag continues
     pos += firstPart[0].length;
     while (pos < rest.length && HTML_SPACE.test(rest.charAt(pos)))

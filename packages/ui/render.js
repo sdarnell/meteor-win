@@ -159,6 +159,13 @@ UI.emboxValue = function (funcOrValue, equals) {
 
 ////////////////////////////////////////
 
+UI.insert = function (renderedTemplate, parentElement, nextNode) {
+  if (! renderedTemplate.dom)
+    throw new Error("Expected template rendered with UI.render");
+
+  UI.DomRange.insert(renderedTemplate.dom, parentElement, nextNode);
+};
+
 // Insert a DOM node or DomRange into a DOM element or DomRange.
 //
 // One of three things happens depending on what needs to be inserted into what:
@@ -236,25 +243,46 @@ var updateAttributes = function(elem, newAttrs, handlers) {
 UI.render = function (kind, parentComponent) {
   if (kind.isInited)
     throw new Error("Can't render component instance, only component kind");
-  var inst = kind.instantiate(parentComponent);
 
-  var content = (inst.render && inst.render());
+  var inst, content, range;
 
-  var range = new UI.DomRange;
-  inst.dom = range;
-  range.component = inst;
+  Deps.nonreactive(function () {
+
+    inst = kind.instantiate(parentComponent);
+
+    content = (inst.render && inst.render());
+
+    range = new UI.DomRange;
+    inst.dom = range;
+    range.component = inst;
+
+  });
 
   materialize(content, range, null, inst);
 
   range.removed = function () {
     inst.isDestroyed = true;
     if (inst.destroyed) {
-      updateTemplateInstance(inst);
-      inst.destroyed.call(inst.templateInstance);
+      Deps.nonreactive(function () {
+        updateTemplateInstance(inst);
+        inst.destroyed.call(inst.templateInstance);
+      });
     }
   };
 
   return inst;
+};
+
+UI.renderWithData = function (kind, data, parentComponent) {
+  if (! UI.isComponent(kind))
+    throw new Error("Component required here");
+  if (kind.isInited)
+    throw new Error("Can't render component instance, only component kind");
+  if (typeof data === 'function')
+    throw new Error("Data argument can't be a function");
+
+  return UI.render(kind.extend({data: function () { return data; }}),
+                   parentComponent);
 };
 
 var contentEquals = function (a, b) {
@@ -325,9 +353,7 @@ var materialize = function (node, parent, before, parentComponent) {
         if (! c.firstRun)
           range.removeAll();
 
-        Deps.nonreactive(function () {
-          materialize(content, range, null, parentComponent);
-        });
+        materialize(content, range, null, parentComponent);
       }
     });
     range.removed = function () {
@@ -335,10 +361,9 @@ var materialize = function (node, parent, before, parentComponent) {
     };
     insert(range, parent, before);
   } else if (node instanceof HTML.Tag) {
-    var tagName = HTML.properCaseTagName(node.tagName);
+    var tagName = node.tagName;
     var elem;
-    if (HTML.isKnownSVGElement(tagName) && (! HTML.isKnownElement(tagName)) &&
-        document.createElementNS) {
+    if (HTML.isKnownSVGElement(tagName) && document.createElementNS) {
       elem = document.createElementNS('http://www.w3.org/2000/svg', tagName);
     } else {
       elem = document.createElement(node.tagName);
@@ -346,7 +371,7 @@ var materialize = function (node, parent, before, parentComponent) {
 
     var rawAttrs = node.attrs;
     var children = node.children;
-    if (node.tagName === 'TEXTAREA') {
+    if (node.tagName === 'textarea') {
       rawAttrs = (rawAttrs || {});
       rawAttrs.value = children;
       children = [];
@@ -393,7 +418,7 @@ var materialize = function (node, parent, before, parentComponent) {
     var htmlNodes = UI.DomBackend.parseHTML(node.value);
     for (var i = 0; i < htmlNodes.length; i++)
       insert(htmlNodes[i], parent, before);
-  } else if (HTML.Special && (node instanceof HTML.Special)) {
+  } else if (Package['html-tools'] && (node instanceof Package['html-tools'].HTMLTools.Special)) {
     throw new Error("Can't materialize Special tag, it's just an intermediate rep");
   } else if (node instanceof UI.InTemplateScope) {
     materialize(node.content, parent, before, node.parentPtr);

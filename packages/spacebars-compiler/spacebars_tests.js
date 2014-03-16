@@ -121,6 +121,12 @@ Tinytest.add("spacebars - stache tags", function (test) {
               ['NUMBER', 2, 'y']]});
   run('{{> foo x=1 y=2 z}}',
       "Can't have a non-keyword argument");
+
+  run('{{true.foo}}', "Can't use");
+  run('{{foo.this}}', "Can only use");
+  run('{{./this}}', "Can only use");
+  run('{{../this}}', "Can only use");
+
 });
 
 
@@ -188,19 +194,19 @@ Tinytest.add("spacebars - Spacebars.dot", function (test) {
 
 Tinytest.add("spacebars - parse", function (test) {
   test.equal(HTML.toJS(Spacebars.parse('{{foo}}')),
-             'HTML.Special({type: "DOUBLE", path: ["foo"]})');
+             'HTMLTools.Special({type: "DOUBLE", path: ["foo"]})');
 
   test.equal(HTML.toJS(Spacebars.parse('{{!foo}}')), 'null');
   test.equal(HTML.toJS(Spacebars.parse('x{{!foo}}y')), '"xy"');
 
   test.equal(HTML.toJS(Spacebars.parse('{{#foo}}x{{/foo}}')),
-             'HTML.Special({type: "BLOCKOPEN", path: ["foo"], content: "x"})');
+             'HTMLTools.Special({type: "BLOCKOPEN", path: ["foo"], content: "x"})');
 
   test.equal(HTML.toJS(Spacebars.parse('{{#foo}}{{#bar}}{{/bar}}{{/foo}}')),
-             'HTML.Special({type: "BLOCKOPEN", path: ["foo"], content: HTML.Special({type: "BLOCKOPEN", path: ["bar"]})})');
+             'HTMLTools.Special({type: "BLOCKOPEN", path: ["foo"], content: HTMLTools.Special({type: "BLOCKOPEN", path: ["bar"]})})');
 
   test.equal(HTML.toJS(Spacebars.parse('<div>hello</div> {{#foo}}<div>{{#bar}}world{{/bar}}</div>{{/foo}}')),
-             '[HTML.DIV("hello"), " ", HTML.Special({type: "BLOCKOPEN", path: ["foo"], content: HTML.DIV(HTML.Special({type: "BLOCKOPEN", path: ["bar"], content: "world"}))})]');
+             '[HTML.DIV("hello"), " ", HTMLTools.Special({type: "BLOCKOPEN", path: ["foo"], content: HTML.DIV(HTMLTools.Special({type: "BLOCKOPEN", path: ["bar"], content: "world"}))})]');
 
 
   test.throws(function () {

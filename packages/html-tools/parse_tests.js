@@ -1,9 +1,9 @@
-var Scanner = HTML._$.Scanner;
-var getContent = HTML._$.getContent;
+var Scanner = HTMLTools.Scanner;
+var getContent = HTMLTools.Parse.getContent;
 
 var CharRef = HTML.CharRef;
 var Comment = HTML.Comment;
-var Special = HTML.Special;
+var Special = HTMLTools.Special;
 
 var BR = HTML.BR;
 var HR = HTML.HR;
@@ -66,7 +66,7 @@ Tinytest.add("html-tools - parser getContent", function (test) {
   succeed('<input selected>', INPUT({selected: ''}));
   succeed('<input selected/>', INPUT({selected: ''}));
   succeed('<input selected />', INPUT({selected: ''}));
-  var FOO = HTML.getTag('FOO');
+  var FOO = HTML.getTag('foo');
   succeed('<foo bar></foo>', FOO({bar: ''}));
   succeed('<foo bar baz ></foo>', FOO({bar: '', baz: ''}));
   succeed('<foo bar=x baz qux=y blah ></foo>',
@@ -92,10 +92,10 @@ Tinytest.add("html-tools - parser getContent", function (test) {
           A({href: "http://www.apple.com/"}, 'Apple'));
 
   (function () {
-    var A = HTML.getTag('A');
-    var B = HTML.getTag('B');
-    var C = HTML.getTag('C');
-    var D = HTML.getTag('D');
+    var A = HTML.getTag('a');
+    var B = HTML.getTag('b');
+    var C = HTML.getTag('c');
+    var D = HTML.getTag('d');
 
     succeed('<a>1<b>2<c>3<d>4</d>5</c>6</b>7</a>8',
             [A('1', B('2', C('3', D('4'), '5'), '6'), '7'), '8']);
@@ -149,24 +149,24 @@ Tinytest.add("html-tools - parser getContent", function (test) {
 });
 
 Tinytest.add("html-tools - parseFragment", function (test) {
-  test.equal(HTML.toJS(HTML.parseFragment("<div><p id=foo>Hello</p></div>")),
+  test.equal(HTML.toJS(HTMLTools.parseFragment("<div><p id=foo>Hello</p></div>")),
              HTML.toJS(DIV(P({id:'foo'}, 'Hello'))));
 
   test.throws(function() {
-    HTML.parseFragment('asdf</a>');
+    HTMLTools.parseFragment('asdf</a>');
   });
 
   (function () {
-    var p = HTML.parseFragment('<p></p>');
-    test.equal(p.tagName, 'P');
+    var p = HTMLTools.parseFragment('<p></p>');
+    test.equal(p.tagName, 'p');
     test.equal(p.attrs, null);
     test.isTrue(p instanceof HTML.Tag);
     test.equal(p.children.length, 0);
   })();
 
   (function () {
-    var p = HTML.parseFragment('<p>x</p>');
-    test.equal(p.tagName, 'P');
+    var p = HTMLTools.parseFragment('<p>x</p>');
+    test.equal(p.tagName, 'p');
     test.equal(p.attrs, null);
     test.isTrue(p instanceof HTML.Tag);
     test.equal(p.children.length, 1);
@@ -174,8 +174,8 @@ Tinytest.add("html-tools - parseFragment", function (test) {
   })();
 
   (function () {
-    var p = HTML.parseFragment('<p>x&#65;</p>');
-    test.equal(p.tagName, 'P');
+    var p = HTMLTools.parseFragment('<p>x&#65;</p>');
+    test.equal(p.tagName, 'p');
     test.equal(p.attrs, null);
     test.isTrue(p instanceof HTML.Tag);
     test.equal(p.children.length, 2);
@@ -187,17 +187,17 @@ Tinytest.add("html-tools - parseFragment", function (test) {
   })();
 
   (function () {
-    var pp = HTML.parseFragment('<p>x</p><p>y</p>');
+    var pp = HTMLTools.parseFragment('<p>x</p><p>y</p>');
     test.isTrue(pp instanceof Array);
     test.equal(pp.length, 2);
 
-    test.equal(pp[0].tagName, 'P');
+    test.equal(pp[0].tagName, 'p');
     test.equal(pp[0].attrs, null);
     test.isTrue(pp[0] instanceof HTML.Tag);
     test.equal(pp[0].children.length, 1);
     test.equal(pp[0].children[0], 'x');
 
-    test.equal(pp[1].tagName, 'P');
+    test.equal(pp[1].tagName, 'p');
     test.equal(pp[1].attrs, null);
     test.isTrue(pp[1] instanceof HTML.Tag);
     test.equal(pp[1].children.length, 1);
@@ -206,12 +206,12 @@ Tinytest.add("html-tools - parseFragment", function (test) {
 
   var scanner = new Scanner('asdf');
   scanner.pos = 1;
-  test.equal(HTML.parseFragment(scanner), 'sdf');
+  test.equal(HTMLTools.parseFragment(scanner), 'sdf');
 
   test.throws(function () {
     var scanner = new Scanner('asdf</p>');
     scanner.pos = 1;
-    HTML.parseFragment(scanner);
+    HTMLTools.parseFragment(scanner);
   });
 });
 
