@@ -4,6 +4,7 @@ if (showRequireProfile)
 
 var _ = require('underscore');
 var Fiber = require('fibers');
+var Future = require('fibers/future');
 var files = require('./files.js');
 var path = require('path');
 var warehouse = require('./warehouse.js');
@@ -302,6 +303,30 @@ var springboard = function (toolsVersion, releaseOverride) {
     // variable. #SpringboardEnvironmentVar
     process.env['METEOR_SPRINGBOARD_RELEASE'] = releaseOverride;
 
+  if (process.platform === 'win32') {
+    var toolsRoot = warehouse.getToolsDir(toolsVersion);
+
+    // Invoking the batch file results in multiple console prompts
+    // when pressing Ctrl+C. So invoke node directly.
+    // TODO: We could now use LaunchMeteor.exe instead.
+    newArgv = process.argv;
+    newArgv[0] = path.join(toolsRoot, 'bin', 'node.exe');
+    if (fs.existsSync(path.join(toolsRoot, 'tools', 'main.js'))) {
+      newArgv[1] = path.join(toolsRoot, 'tools', 'main.js');
+    } else {
+      newArgv[1] = path.join(toolsRoot, 'tools', 'meteor.js'); // pre-0.7.1
+    }
+    process.env['NODE_PATH'] = path.join(toolsRoot, 'lib', 'node_modules');
+
+    var ret = new Future();
+    var child = require("child_process").spawn(newArgv[0], newArgv.slice(1),
+      { env: process.env, stdio: 'inherit' });
+    child.on('exit', function (code) {
+      ret.return(code);
+    });
+    process.exit(ret.wait());
+  }
+
   // Now exec; we're not coming back.
   require('kexec')(cmd, newArgv);
 };
@@ -529,8 +554,8 @@ Fiber(function () {
 
   if (process.env.PACKAGE_DIRS)
     // User can provide additional package directories to search in
-    // PACKAGE_DIRS (colon-separated).
-    packageDirs = packageDirs.concat(process.env.PACKAGE_DIRS.split(':'));
+    // PACKAGE_DIRS (colon separated, semi-colon on Windows).
+    packageDirs = packageDirs.concat(process.env.PACKAGE_DIRS.split(path.delimiter));
 
   // Now before we do anything else, figure out the release to use,
   // and if that release goes with a different version of the tools,
