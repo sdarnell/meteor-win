@@ -170,9 +170,13 @@ _.extend(exports, {
   // we're logged in to. Typically .meteorsession in the user's home
   // directory.
   getSessionFilePath: function () {
+    var homeDir = process.env.HOME;
+    if (process.platform === 'win32') {
+      homeDir = process.env.LOCALAPPDATA || process.env.APPDATA;
+    }
     // METEOR_SESSION_FILE is for automated testing purposes only.
     return process.env.METEOR_SESSION_FILE ||
-      path.join(process.env.HOME, '.meteorsession');
+      path.join(homeDir, '.meteorsession');
   },
 
   // Port to use when querying URLs for the deploy server that backs
