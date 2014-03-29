@@ -6,10 +6,6 @@ var config = require('./config.js');
 var release = require('./release.js');
 var runLog = require('./run-log.js').runLog;
 
-if (process.platform === 'win32') {
-  manifestUrl = 'https://win-install.meteor.com/manifest.json';
-}
-
 /**
  * Downloads the current manifest file and returns it. Throws
  * files.OfflineError if we are offline, or throws some other

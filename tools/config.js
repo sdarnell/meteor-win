@@ -163,6 +163,10 @@ _.extend(exports, {
       u = "www.meteor.com"; // localhost can't run the manifest server
     var host = getUniverse().replace(/^www\./, 'update.');
 
+    if (process.platform === 'win32') {
+      return 'https://win-install.meteor.com/manifest.json';
+    }
+
     return addScheme(host) + "/manifest.json";
   },
 
