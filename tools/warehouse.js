@@ -33,6 +33,9 @@ var httpHelpers = require('./http-helpers.js');
 var fiberHelpers = require('./fiber-helpers.js');
 
 var WAREHOUSE_URLBASE = 'https://warehouse.meteor.com';
+if (process.platform === 'win32') {
+  WAREHOUSE_URLBASE = 'https://win-install.meteor.com';
+}
 
 // Like fs.symlinkSync, but creates a temporay link and renames it over the
 // file; this means it works even if the file already exists.
@@ -45,8 +48,6 @@ var symlinkOverSync = function (linkText, file) {
 var fs_readlinkSync = fs.readlinkSync;
 
 if (process.platform === 'win32') {
-  WAREHOUSE_URLBASE = 'https://win-install.meteor.com';
-
   // On Windows, avoid symlinks
   symlinkOverSync = function (linkText, file) {
     fs.writeFileSync(file, linkText);
