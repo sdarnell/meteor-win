@@ -163,8 +163,9 @@ npm install source-map-support@0.2.5
 # bcrypt has awkward OpenSSL dependencies on windows, but it isn't needed yet
 if [ "$UNAME" != "Windows" ] ; then
 npm install bcrypt@0.7.7
-fi
+# This is used by oauth-encryption
 npm install node-aes-gcm@0.1.3
+fi
 npm install heapdump@0.2.5
 
 # Fork of 1.0.2 with https://github.com/nodejitsu/node-http-proxy/pull/592
