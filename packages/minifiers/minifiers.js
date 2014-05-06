@@ -110,7 +110,7 @@ CssTools = {
           // We don't rewrite urls starting with a protocol definition such as
           // http, https, or data.
           if (isRelative(resource.path) && resource.protocol === null) {
-            absolutePath = path.join(basePath, resource.path);
+            absolutePath = url.resolve(basePath + '/', resource.path);
             newCssUrl = "url(" + quotes + absolutePath + quotes + ")";
             value = value.replace(oldCssUrl, newCssUrl);
           }
