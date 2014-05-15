@@ -1,6 +1,19 @@
 ## v.NEXT
 
 
+## v.0.8.1.2
+
+* Fix memory leak (introduced in 0.8.1) by making sure to unregister
+  sessions at the server when they are closed due to heartbeat timeout.
+
+* Add `credentialSecret` argument to `Google.retrieveCredential`,
+  `Facebook.retrieveCredential`, etc., which is needed to use them as of
+  0.8.1. #2118
+
+* Fix 0.8.1 regression that broke apps using a `ROOT_URL` with a path
+  prefix. #2109
+
+
 ## v0.8.1.1
 
 * Fix 0.8.1 regression preventing clients from specifying `_id` on insert. #2097
@@ -14,6 +27,15 @@
 ## v0.8.1
 
 #### Meteor Accounts
+
+* Fix a security flaw in OAuth1 and OAuth2 implementations. If you are
+  using any OAuth accounts packages (such as `accounts-google` or
+  `accounts-twitter`), we recommend that you update immediately and log
+  out your users' current sessions with the following MongoDB command:
+
+    $ db.users.update({}, { $set: { 'services.resume.loginTokens': [] } }, { multi: true });
+
+* OAuth redirect URLs are now required to be on the same origin as your app.
 
 * Log out a user's other sessions when they change their password.
 
