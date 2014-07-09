@@ -141,6 +141,11 @@ Fiber(function () {
       }
     };
     var getAsset = function (assetPath, encoding, callback) {
+      // Some callers use path.join() to build the asset path. Be lenient and
+      // allow either the local path separator or the correct forward slash.
+      if (path.sep !== '/' && assetPath.indexOf(path.sep) >= 0) {
+        assetPath = assetPath.split(path.sep).join('/');
+      }
       var fut;
       if (! callback) {
         fut = new Future();
