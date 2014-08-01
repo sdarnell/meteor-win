@@ -5,6 +5,26 @@ var Future = require(path.join("fibers", "future"));
 var _ = require('underscore');
 var sourcemap_support = require('source-map-support');
 
+if (process.platform === 'win32') {
+  // To prevent output being lost, force console writes to be synchronous.
+  var syncWrite = function (chunk, enc, cb) {
+    if (typeof enc === 'function') {
+      cb = enc;
+      enc = null;
+    }
+    if (typeof chunk === 'string') {
+      fs.writeSync(this.fd, chunk, null, enc);
+    } else {
+      fs.writeSync(this.fd, chunk, 0, chunk.length);
+    }
+    if (cb) process.nextTick(cb);
+    return true;
+  };
+
+  process.stdout.write = syncWrite;
+  process.stderr.write = syncWrite;
+}
+
 // This code is duplicated in tools/main.js.
 var MIN_NODE_VERSION = 'v0.10.29';
 
@@ -91,6 +111,16 @@ Fiber(function () {
         var nodeModuleDir =
           path.resolve(serverDir, fileInfo.node_modules, name);
 
+        if (process.platform === 'win32') {
+          // Resolve any poor-man's symlinks.
+          // See tools/builder.js for the code that creates these
+          var symlink = path.resolve(serverDir, fileInfo.node_modules) + '.symlink';
+          try {
+            nodeModuleDir = path.resolve(fs.readFileSync(symlink, 'utf8'), name);
+          } catch (e) {
+          }
+        }
+
         if (fs.existsSync(nodeModuleDir)) {
           return require(nodeModuleDir);
           }
@@ -111,6 +141,11 @@ Fiber(function () {
       }
     };
     var getAsset = function (assetPath, encoding, callback) {
+      // Some callers use path.join() to build the asset path. Be lenient and
+      // allow either the local path separator or the correct forward slash.
+      if (path.sep !== '/' && assetPath.indexOf(path.sep) >= 0) {
+        assetPath = assetPath.split(path.sep).join('/');
+      }
       var fut;
       if (! callback) {
         fut = new Future();
