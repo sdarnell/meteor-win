@@ -1,9 +1,10 @@
-@echo off
+@echo on
 
 pushd "%~dp0"
 
 echo Compiling LaunchMeteor
 %WINDIR%\Microsoft.NET\Framework\v3.5\csc.exe LaunchMeteor.cs /debug /nologo
+copy LaunchMeteor.exe ..\..\meteor.exe
 
 cd ..\..
 

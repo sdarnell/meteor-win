@@ -95,8 +95,11 @@ var makeWarehouseStructure = function (blessedReleaseName, rcManifest, notices) 
   fs.mkdirSync(path.join(warehouseDirectory, 'tools'), 0755);
 
   // Avoid using symlinks on windows
-  var content = fs.readFileSync(path.resolve(__dirname, '..', '..', 'meteor.bat'));
-  fs.writeFileSync(path.join(warehouseDirectory, 'meteor.bat'), content);
+  cp(path.resolve(__dirname, '..', '..', 'meteor.bat'),
+     path.join(warehouseDirectory, 'meteor.bat'));
+
+  cp(path.resolve(__dirname, '..', 'windows', 'LaunchMeteor.exe'),
+     path.join(warehouseDirectory, 'meteor.exe'));
 
   fs.writeFileSync(path.join(warehouseDirectory, 'releases', 'latest'),
                    blessedReleaseName + '.release.json');
