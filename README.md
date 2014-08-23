@@ -94,6 +94,7 @@ Interested in contributing to Meteor?
 
 ## Alternative: Nitrious.io
 * If you can't get it running on Windows, just play around with nitrous.io:
+https://www.discovermeteor.com/blog/meteor-nitrous/
  
 
 
