@@ -969,9 +969,9 @@ _.extend(Unipackage.prototype, {
       'scripts/admin/launch-meteor');
 
     // Trim blank line and unnecessary examples.
-    pathsToCopy = _.filter(pathsToCopy.split('\n'), function (f) {
-      return f && !f.match(/^examples\/other/) &&
-        !f.match(/^examples\/unfinished/);
+    pathsToCopy = _.filter(pathsToCopy.split(/\r?\n/), function (f) {
+      return f && !f.match(/^examples[\/\\]other/) &&
+        !f.match(/^examples[\/\\]unfinished/);
     });
 
     var gitSha = files.runGitInCheckout('rev-parse', 'HEAD');

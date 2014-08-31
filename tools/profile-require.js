@@ -23,7 +23,7 @@ RequireInvocation.prototype.isOurCode = function () {
   if (! self.filename)
     return self.name === 'TOP';
 
-  if (! self.name.match(/\//))
+  if (! self.name.match(/[\/\\]/))
     return false; // we always require our stuff via a path
 
   var path = require('path');

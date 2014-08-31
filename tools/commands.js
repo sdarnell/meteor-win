@@ -944,7 +944,7 @@ main.registerCommand({
         },  function () {
 
           // If it's a package name, just pass it through.
-          if (p.indexOf('/') === -1) {
+          if (p.indexOf('/') === -1 && p.indexOf(path.sep) === -1) {
             if (p.indexOf('@') !== -1) {
               buildmessage.error(
                 "You may not specify versions for local packages: " + p );
