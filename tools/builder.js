@@ -21,8 +21,12 @@ var normalizeSlashes = function (name) {
   return (path.sep === '/') ? name : name.replace(/\//g, path.sep);
 };
 
+var platformUsesSymlinks = (process.platform !== 'win32');
+
 var fs_symlinkSync = function (targetpath, linkpath) {
-  if (process.platform === 'win32') {
+  if (platformUsesSymlinks) {
+    fs.symlinkSync(targetpath, linkpath);
+  } else {
     // Symlinks/junctions are problematic on Windows: not supported on some
     // filesystems, limited by permissions, broken in node 8.18, no built-in
     // command to create them on XP, not all apps do sensible things etc.
@@ -31,8 +35,6 @@ var fs_symlinkSync = function (targetpath, linkpath) {
     // simple text file redirect. See server/boot.js and tools/bundler.js
     // for the code to indirect via the symlink files.
     fs.writeFileSync(linkpath + '.symlink', fs.realpathSync(targetpath));
-  } else {
-    fs.symlinkSync(targetpath, linkpath);
   }
 };
 
@@ -213,7 +215,7 @@ _.extend(Builder.prototype, {
 
     self._ensureDirectory(path.dirname(relPath));
     var absPath = path.join(self.buildPath, relPath);
-    if (options.symlink) {
+    if (options.symlink && platformUsesSymlinks) {
       fs.symlinkSync(options.symlink, absPath);
     } else {
       // Builder is used to create build products, which should be read-only;
@@ -426,7 +428,7 @@ _.extend(Builder.prototype, {
 
         if (fileStatus.isDirectory()) {
           walk(thisAbsFrom, thisRelTo);
-        } else if (fileStatus.isSymbolicLink()) {
+        } else if (fileStatus.isSymbolicLink() && platformUsesSymlinks) {
           fs.symlinkSync(fs.readlinkSync(thisAbsFrom),
                          path.resolve(self.buildPath, thisRelTo));
           // A symlink counts as a file, as far as "can you put something under

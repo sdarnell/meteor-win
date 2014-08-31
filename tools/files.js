@@ -640,6 +640,13 @@ files.writeFileAtomically = function (filename, contents) {
 // file; this means it works even if the file already exists.
 files.symlinkOverSync = function (linkText, file) {
   file = path.resolve(file);
+
+  // On Windows don't use real symlinks
+  if (process.platform === 'win32') {
+    fs.writeFileSync(file + '.symlink', linkText);
+    return;
+  }
+
   var tmpSymlink = path.join(
     path.dirname(file),
     "." + path.basename(file) + ".tmp" + utils.randomToken());

@@ -53,30 +53,6 @@ if (process.platform === 'win32') {
   WAREHOUSE_URLBASE = 'https://win-install.meteor.com';
 }
 
-<<<<<<< HEAD
-=======
-// Like fs.symlinkSync, but creates a temporay link and renames it over the
-// file; this means it works even if the file already exists.
-var symlinkOverSync = function (linkText, file) {
-  var tmpSymlink = file + ".tmp" + utils.randomToken();
-  fs.symlinkSync(linkText, tmpSymlink);
-  fs.renameSync(tmpSymlink, file);
-};
-
-var fs_readlinkSync = fs.readlinkSync;
-
-if (process.platform === 'win32') {
-  // On Windows, avoid symlinks
-  symlinkOverSync = function (linkText, file) {
-    fs.writeFileSync(file, linkText);
-  };
-
-  fs_readlinkSync = function (path) {
-    return fs.readFileSync(path, 'utf8');
-  };
-}
-
->>>>>>> win0.8.3
 var warehouse = exports;
 _.extend(warehouse, {
   // An exception meaning that you asked for a release that doesn't
@@ -139,71 +115,6 @@ _.extend(warehouse, {
     return warehouse._populateWarehouseForRelease(release, !quiet);
   },
 
-<<<<<<< HEAD
-=======
-  _latestReleaseSymlinkPath: function () {
-    return path.join(warehouse.getWarehouseDir(), 'releases', 'latest');
-  },
-
-  // look in the warehouse for the latest release version. if no
-  // releases are found, return null.
-  latestRelease: function () {
-    var latestReleaseSymlink = warehouse._latestReleaseSymlinkPath();
-    // This throws if the symlink doesn't exist, but it really should, since
-    // it exists in bootstrap tarballs and is never deleted.
-    var linkText = fs_readlinkSync(latestReleaseSymlink);
-    return linkText.replace(/\.release\.json$/, '');
-  },
-
-  _latestToolsSymlinkPath: function () {
-    return path.join(warehouse.getWarehouseDir(), 'tools', 'latest');
-  },
-
-  // Look in the warehouse for the latest tools version. (This is the one that
-  // the meteor shell script runs initially). If the symlink doesn't exist
-  // (which shouldn't happen, since it is provided in the bootstrap tarball)
-  // returns null.
-  latestTools: function () {
-    var latestToolsSymlink = warehouse._latestToolsSymlinkPath();
-    try {
-      return fs_readlinkSync(latestToolsSymlink);
-    } catch (e) {
-      return null;
-    }
-  },
-
-  // returns true if we updated the latest symlink
-  // XXX make errors prettier
-  fetchLatestRelease: function (options) {
-    options = options || {};
-    var manifest = updater.getManifest();
-
-    // XXX in the future support release channels other than stable
-    var releaseName = manifest && manifest.releases &&
-          manifest.releases.stable && manifest.releases.stable.version;
-    if (! releaseName)
-      throw new Error("no stable release found?");
-
-    var latestReleaseManifest = warehouse._populateWarehouseForRelease(
-      releaseName, !!options.showInstalling);
-
-    // First, make sure the latest tools symlink reflects the latest installed
-    // release.
-    if (latestReleaseManifest.tools !== warehouse.latestTools()) {
-      symlinkOverSync(latestReleaseManifest.tools,
-                      warehouse._latestToolsSymlinkPath());
-    }
-
-    var storedLatestRelease = warehouse.latestRelease();
-    if (storedLatestRelease === releaseName)
-      return false;
-
-    symlinkOverSync(releaseName + '.release.json',
-                    warehouse._latestReleaseSymlinkPath());
-    return true;
-  },
-
->>>>>>> win0.8.3
   packageExistsInWarehouse: function (name, version) {
     // A package exists if its directory exists. (We used to look for a
     // particular file name ("package.js") inside the directory, but since we
@@ -364,6 +275,11 @@ _.extend(warehouse, {
         // legacy tools we've downloaded into this warehouse. Add the symlink,
         // so that the tools doesn't get confused when it tries to readlink it.
         if (!fs.existsSync(warehouse._latestToolsSymlinkPath())) {
+          if (process.platform === 'win32') {
+            // Maybe this should use the .symlink suffix
+            fs.writeFileSync(warehouse._latestToolsSymlinkPath(),
+                             newPieces.tools.version);
+          } else
           fs.symlinkSync(newPieces.tools.version,
                          warehouse._latestToolsSymlinkPath());
         }
@@ -411,6 +327,11 @@ _.extend(warehouse, {
       // symlink, so that the tools doesn't get confused when it tries to
       // readlink it.
       if (!fs.existsSync(warehouse._latestReleaseSymlinkPath())) {
+        if (process.platform === 'win32') {
+          // Maybe this should use the .symlink suffix
+          fs.writeFileSync(path.join(warehouseDirectory, 'releases', 'latest'),
+                           releaseVersion + '.release.json');
+        } else
         fs.symlinkSync(releaseVersion + '.release.json',
                        warehouse._latestReleaseSymlinkPath());
       }
