@@ -60,6 +60,9 @@ _.extend(exports.Tropohouse.prototype, {
       return null;
     }
 
+    // Don't use : in the file system, use _ instead
+    packageName = packageName.replace(':', '_');
+
     var relativePath = path.join(config.getPackagesDirectoryName(),
                                  packageName, version);
     return relative ? relativePath : path.join(self.root, relativePath);
