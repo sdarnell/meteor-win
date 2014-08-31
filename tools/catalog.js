@@ -22,7 +22,7 @@ var Fiber = require('fibers');
 
 var catalog = exports;
 
-catalog.DEFAULT_TRACK = 'METEOR';
+catalog.DEFAULT_TRACK = 'WIN';
 
 
 /////////////////////////////////////////////////////////////////////////////////////
