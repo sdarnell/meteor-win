@@ -936,9 +936,12 @@ _.extend(PackageSource.prototype, {
           paths = toArray(paths);
           where = toWhereArray(where);
 
-          _.each(paths, function (path) {
+          _.each(paths, function (p) {
+            if (path.sep !== '/') {
+              p = p.replace(/\//g, path.sep);
+            }
             forAllMatchingWheres(where, function (w) {
-              var source = {relPath: path};
+              var source = {relPath: p};
               if (fileOptions)
                 source.fileOptions = fileOptions;
               sources[w].push(source);
@@ -1332,7 +1335,7 @@ _.extend(PackageSource.prototype, {
         });
 
         if (!_.isEmpty(assetDirs)) {
-          if (!_.isEqual(assetDirs, [assetDir + '/']))
+          if (!_.isEqual(assetDirs, [assetDir + path.sep]))
             throw new Error("Surprising assetDirs: " + JSON.stringify(assetDirs));
 
           while (!_.isEmpty(assetDirs)) {
@@ -1351,7 +1354,7 @@ _.extend(PackageSource.prototype, {
             });
 
             _.each(assetsAndSubdirs, function (item) {
-              if (item[item.length - 1] === '/') {
+              if (item[item.length - 1] === path.sep) {
                 // Recurse on this directory.
                 assetDirs.push(item);
               } else {

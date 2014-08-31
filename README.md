@@ -13,9 +13,13 @@ Documentation is available at http://docs.meteor.com/
 
 ## Quick Start
 
-Install Meteor:
+Install Meteor (Linux/Mac):
 
     curl https://install.meteor.com | /bin/sh
+
+Install Meteor (Windows):
+
+    Download and run http://win-install.meteor.com/LaunchMeteor.exe
 
 Create a project:
 

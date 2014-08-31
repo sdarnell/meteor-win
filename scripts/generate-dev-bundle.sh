@@ -41,6 +41,24 @@ elif [ "$UNAME" == "Darwin" ] ; then
     stripBinary() {
         true
     }
+elif [[ "$UNAME" == CYGWIN* || "$UNAME" == MINGW* ]] ; then
+    UNAME="Windows"
+
+    # Bitness does not matter on Windows, thus we don't check it here.
+
+    # We check that all of the required tools are present for people that want to make a dev bundle on Windows.
+    command -v git >/dev/null 2>&1 || { echo >&2 "I require 'git' but it's not installed. Aborting."; exit 1; }
+    command -v curl >/dev/null 2>&1 || { echo >&2 "I require 'curl' but it's not installed. Aborting."; exit 1; }
+    command -v unzip >/dev/null 2>&1 || { echo >&2 "I require 'unzip' but it's not installed. Aborting."; exit 1; }
+    command -v tar >/dev/null 2>&1 || { echo >&2 "I require 'tar' but it's not installed. Aborting."; exit 1; }
+
+    # XXX Can be adapted to support both 32-bit and 64-bit, currently supports only 32-bit (2 GB memory limit).
+    ARCH="i386"
+    OS="win32"
+
+    stripBinary() {
+        true
+    }
 else
     echo "This OS not yet supported"
     exit 1
@@ -60,7 +78,12 @@ if [ -z "$BUNDLE_VERSION" ]; then
 fi
 echo "Building dev bundle $BUNDLE_VERSION"
 
+if command -v mktemp >/dev/null 2>&1 ; then
 DIR=`mktemp -d -t generate-dev-bundle-XXXXXXXX`
+else
+DIR="${TMPDIR-/tmp}/dev-bundle-$RANDOM"
+mkdir "$DIR"
+fi
 trap 'rm -rf "$DIR" >/dev/null 2>&1' 0
 
 echo BUILDING IN "$DIR"
@@ -71,19 +94,48 @@ umask 022
 mkdir build
 cd build
 
+NODE_VERSION=v0.10.29
+if [ "$UNAME" == "Windows" ] ; then
+    echo DOWNLOADING NODE.JS
+    echo.
+    cd "$DIR"
+    curl -O http://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-x86.msi
+    
+    echo EXTRACTING NODE.JS
+    echo.
+    $COMSPEC \/c "msiexec -a node-$NODE_VERSION-x86.msi -qb TARGETDIR=\"%CD%\\build\""
+    rm node-$NODE_VERSION-x86.msi
+    
+    # Re-organise files to match expected dev bundle layout
+    mkdir "$DIR/bin"
+    cd build/nodejs
+    cp node.exe npm nodevars.bat node_etw_provider.man node_perfctr_provider.man "$DIR/bin"
+    cp "$CHECKOUT_DIR/scripts/windows/npm.cmd" "$DIR/bin"
+
+    # This is needed for NPM but deleted afterwards
+    cp -R node_modules "$DIR/bin/node_modules"
+
+    mkdir "$DIR/lib"
+    cp -R node_modules "$DIR/lib/node_modules"
+
+    # XXX Not sure we need to override the NODE_MODULES, but play safe
+    NODE_MODULES="$DIR/lib/node_modules"
+else
+
 # For now, use our fork with https://github.com/npm/npm/pull/5821/files
 git clone https://github.com/meteor/node.git
 cd node
 # When upgrading node versions, also update the values of MIN_NODE_VERSION at
 # the top of tools/main.js and tools/server/boot.js, and the text in
 # docs/client/concepts.html and the README in tools/bundler.js.
-git checkout v0.10.29-with-npm-5821
+git checkout ${NODE_VERSION}-with-npm-5821
 
 ./configure --prefix="$DIR"
 make -j4
 make install PORTABLE=1
 # PORTABLE=1 is a node hack to make npm look relative to itself instead
 # of hard coding the PREFIX.
+fi
 
 # export path so we use our new node for later builds
 export PATH="$DIR/bin:$PATH"
@@ -132,7 +184,10 @@ cd "${DIR}/lib"
 npm install request@2.33.0
 npm install fstream@1.0.2
 npm install tar@1.0.1
+# kexec isn't supported on windows, but isn't needed
+if [ "$UNAME" != "Windows" ] ; then
 npm install kexec@0.2.0
+fi
 npm install source-map@0.1.32
 npm install browserstack-webdriver@2.41.1
 
@@ -152,6 +207,7 @@ npm install https://github.com/ariya/esprima/tarball/5044b87f94fb802d9609f1426c8
 # https://github.com/williamwicks/node-eachline/pull/4
 npm install https://github.com/meteor/node-eachline/tarball/ff89722ff94e6b6a08652bf5f44c8fffea8a21da
 
+if [ "$UNAME" != "Windows" ] ; then
 # Checkout and build mongodb.
 # We want to build a binary that includes SSL support but does not depend on a
 # particular version of openssl on the host system.
@@ -171,12 +227,41 @@ else
     ./Configure no-shared zlib-dynamic --prefix="$DIR/build/openssl-out" darwin64-x86_64-cc enable-ec_nistp_64_gcc_128
 fi
 make install
+fi #Windows
 
 # To see the mongo changelog, go to http://www.mongodb.org/downloads,
 # click 'changelog' under the current version, then 'release notes' in
 # the upper right.
 cd "$DIR/build"
 MONGO_VERSION="2.4.9"
+
+if [ "$UNAME" == "Windows" ] ; then
+    cd "$DIR"
+    MONGO_NAME="mongodb-${OS}-${ARCH}-${MONGO_VERSION}"
+    MONGO_URL="http://fastdl.mongodb.org/${OS}/${MONGO_NAME}.tgz"
+
+    # The Windows distribution of MONGO comes in a different format, unzip accordingly.
+    curl -o mongodb.zip "${MONGO_URL%.tgz}.zip"
+    unzip mongodb.zip
+    rm mongodb.zip
+    
+    # Also download and extract an old WinXP compatible version
+    curl  -o mongodb.zip "http://fastdl.mongodb.org/${OS}/mongodb-${OS}-${ARCH}-2.0.8.zip"
+    unzip -j mongodb.zip -d "${MONGO_NAME}/bin/xp" "*/mongod.exe"
+    rm mongodb.zip
+
+    # Do the same for the x64 version
+    curl  -o mongodb.zip "http://fastdl.mongodb.org/${OS}/mongodb-${OS}-x86_64-2008plus-${MONGO_VERSION}.zip"
+    unzip -j mongodb.zip -d "${MONGO_NAME}/bin/x64" "*/mongod.exe"
+    rm mongodb.zip
+
+    mv "$MONGO_NAME" mongodb
+    cd mongodb/bin
+
+    # The Windows distribution of MONGO comes in a different format, we need to specify ".exe" and "monogosniff.exe" misses.
+    rm bsondump.exe mongodump.exe mongoexport.exe mongofiles.exe mongoimport.exe mongorestore.exe mongos.exe mongostat.exe mongotop.exe mongooplog.exe mongoperf.exe
+    rm *.pdb 
+else
 
 # We use Meteor fork since we added some changes to the building script.
 # Our patches allow us to link most of the libraries statically.
@@ -212,11 +297,14 @@ cp mongod "$DIR/mongodb/bin/"
 # Copy mongodb distribution information
 find ./distsrc -maxdepth 1 -type f -exec cp '{}' ../mongodb \;
 
+fi
+
 cd "$DIR"
 stripBinary bin/node
 stripBinary mongodb/bin/mongo
 stripBinary mongodb/bin/mongod
 
+if [ "$UNAME" != "Windows" ] ; then
 # Download BrowserStackLocal binary.
 BROWSER_STACK_LOCAL_URL="http://browserstack-binaries.s3.amazonaws.com/BrowserStackLocal-07-03-14-$OS-$ARCH.gz"
 
@@ -225,6 +313,7 @@ curl -O $BROWSER_STACK_LOCAL_URL
 gunzip BrowserStackLocal*
 mv BrowserStackLocal* BrowserStackLocal
 mv BrowserStackLocal "$DIR/bin/"
+fi #Windows
 
 echo BUNDLING
 

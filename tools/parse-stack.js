@@ -15,7 +15,7 @@ var _ = require('underscore');
 // return anything past that function. We call this the "user portion"
 // of the stack.
 exports.parse = function (err) {
-  var frames = err.stack.split('\n');
+  var frames = err.stack.split(/\r?\n/);
 
   frames.shift(); // at least the first line is the exception
   var stop = false;
@@ -26,8 +26,9 @@ exports.parse = function (err) {
       return;
     var m;
     if (m =
-        frame.match(/^\s*at\s*((new )?.+?)\s*(\[as\s*([^\]]*)\]\s*)?\(([^:]*)(:(\d+))?(:(\d+))?\)\s*$/)) {
+        frame.match(/^\s*at\s*((new )?.+?)\s*(\[as\s*([^\]]*)\]\s*)?\((..[^:]*)(:(\d+))?(:(\d+))?\)\s*$/)) {
       // https://code.google.com/p/v8/wiki/JavaScriptStackTraceApi
+      // "    at My.Function (c:\\path\\to\\myfile.js:532:39)"
       // "    at My.Function (/path/to/myfile.js:532:39)"
       // "    at Array.forEach (native)"
       // "    at new My.Class (file.js:1:2)"
@@ -53,7 +54,8 @@ exports.parse = function (err) {
         line: m[7] ? +m[7] : undefined,
         column: m[9] ? +m[9] : undefined
       });
-    } else if (m = frame.match(/^\s*at\s+([^:]+)(:(\d+))?(:(\d+))?\s*$/)) {
+    } else if (m = frame.match(/^\s*at\s+(..[^:]+)(:(\d+))?(:(\d+))?\s*$/)) {
+      // "    at c:\\path\\to\\myfile.js:532:39"
       // "    at /path/to/myfile.js:532:39"
       ret.push({
         file: m[1],

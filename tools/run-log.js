@@ -16,6 +16,7 @@ var release = require('./release.js');
 // process.std{out,err} or to console.log; we should be careful to not do that
 // anywhere that may overlap with use of runLog.
 
+var backToLeft = (process.platform === 'win32') ? "\x1B[G" : "\r";
 
 var getLoggingPackage = function () {
   var Log = uniload.load({
@@ -74,7 +75,7 @@ _.extend(RunLog.prototype, {
 
     if (self.temporaryMessageLength) {
       var spaces = new Array(self.temporaryMessageLength + 1).join(' ');
-      process.stdout.write(spaces + '\r');
+      process.stdout.write(spaces + backToLeft);
       self.temporaryMessageLength = null;
     }
   },
@@ -130,7 +131,7 @@ _.extend(RunLog.prototype, {
     var self = this;
 
     self._clearSpecial();
-    process.stdout.write(msg + "\r");
+    process.stdout.write(msg + backToLeft);
     self.temporaryMessageLength = msg.length;
   },
 
@@ -140,7 +141,7 @@ _.extend(RunLog.prototype, {
     if (self.consecutiveRestartMessages) {
       // replace old message in place. this assumes that the new restart message
       // is not shorter than the old one.
-      process.stdout.write("\r");
+      process.stdout.write(backToLeft);
       self.messages.pop();
       self.consecutiveRestartMessages ++;
     } else {

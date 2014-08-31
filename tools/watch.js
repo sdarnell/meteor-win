@@ -249,9 +249,13 @@ var readDirectory = function (options) {
         // pretend it was never there in the first place.
         return;
       }
+      if (e && (e.code === 'EPERM')) {
+        // On Windows, statSync() can return EPERM for files pending deletion.
+        return;
+      }
       throw e;
     }
-    // XXX if we're on windows, I guess it's possible for files to end with '/'.
+    // XXX if we're on windows, I guess it's possible for files to end with '/'. (nope, it isn't)
     if (stats.isDirectory())
       entry += '/';
     contentsWithSlashes.push(entry);

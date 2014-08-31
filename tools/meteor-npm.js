@@ -178,6 +178,12 @@ var makeNewPackageNpmDir = function (newPackageNpmDir) {
     path.join(newPackageNpmDir, '.gitignore'),
     ['node_modules',
      ''/*git diff complains without trailing newline*/].join('\n'));
+
+  // create a .gitattributes to ensure git diff expects what was generated.
+  fs.writeFileSync(
+    path.join(newPackageNpmDir, '.gitattributes'),
+    ['/npm-shrinkwrap.json eol=lf', '/README eol=lf', '/.git* eol=lf',
+    ''/*git diff complains without trailing newline*/].join('\n'));
 };
 
 var updateExistingNpmDirectory = function (packageName, newPackageNpmDir,
@@ -370,6 +376,9 @@ var currentNodeCompatibilityVersion = function () {
 // XXX this duplicates files.run(). use files.run() in this file and
 // give the test some hook to get the info it needs.
 meteorNpm._execFileSync = function (file, args, opts) {
+  if (process.platform === 'win32' && /\\bin\\npm$/.test(file))
+    file += ".cmd";
+
   if (meteorNpm._printNpmCalls) // only used by test-bundler.js
     process.stdout.write('cd ' + opts.cwd + ' && ' + file + ' ' +
                          args.join(' ') + ' ...\n');

@@ -126,6 +126,9 @@ var _host = null; // memoize
 var host = function () {
   if (! _host) {
     var run = function (/* arguments */) {
+      if (process.platform === 'win32') {
+        return 'Windows_NT'; // As returned by node os.type()
+      }
       var result = files.run.apply(null, arguments);
       if (! result)
         throw new Error("can't get arch with " +
@@ -152,6 +155,16 @@ var host = function () {
         _host = "os.linux.x86_64";
       else
         throw new Error("Unsupported architecture: " + machine);
+    }
+
+    else if (uname === 'Windows_NT') {
+      var os = require('os');
+      if (os.arch() === 'ia32')
+        _host = 'os.windows.x86_32';
+      else if (os.arch() === 'x64')
+        _host = 'os.windows.x86_64';
+      else
+        throw new Error("Unsupported architecture: " + os.arch());
     }
 
     else

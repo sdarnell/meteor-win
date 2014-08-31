@@ -122,6 +122,10 @@ CssTools = {
           // http, https, or data.
           if (isRelative(resource.path) && resource.protocol === null) {
             absolutePath = path.join(basePath, resource.path);
+            // path.join() shouldn't be used on url paths. Fix up any slashes.
+            if (path.sep !== '/') {
+              absolutePath = absolutePath.split(path.sep).join('/');
+            }
             newCssUrl = "url(" + quotes + absolutePath + quotes + ")";
             value = value.replace(oldCssUrl, newCssUrl);
           }

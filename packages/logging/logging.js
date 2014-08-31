@@ -47,7 +47,7 @@ var LEVEL_COLORS = {
   error: 'red'
 };
 
-var META_COLOR = 'blue';
+var META_COLOR = 'cyan'; // 'blue'; Dark blue is hard to see on black consoles
 
 // XXX package
 var RESTRICTED_KEYS = ['time', 'timeInexact', 'level', 'file', 'line',

@@ -413,7 +413,7 @@ var compileUnibuild = function (unipkg, inputSourceArch, packageLoader,
   var addAsset = function (contents, relPath, hash) {
     // XXX hack
     if (! inputSourceArch.pkg.name)
-      relPath = relPath.replace(/^(private|public)\//, '');
+      relPath = relPath.replace(/^(private|public)[\/\\]/, '');
 
     resources.push({
       type: "asset",
@@ -577,7 +577,7 @@ var compileUnibuild = function (unipkg, inputSourceArch, packageLoader,
       // XXX duplicates _pathForSourceMap() in linker
       pathForSourceMap: (
         inputSourceArch.pkg.name
-          ? inputSourceArch.pkg.name + "/" + relPath
+          ? path.join(inputSourceArch.pkg.name, relPath)
           : path.basename(relPath)),
       // null if this is an app. intended to be used for the sources
       // dictionary for source maps.
@@ -683,7 +683,7 @@ var compileUnibuild = function (unipkg, inputSourceArch, packageLoader,
     // combinedServePath is either [pkgname].js or [pluginName]:plugin.js.
     // XXX: If we change this, we can get rid of source arch names!
     combinedServePath: isApp ? null :
-      "/packages/" + inputSourceArch.pkg.name +
+      path.sep + "packages" + path.sep + inputSourceArch.pkg.name +
       (inputSourceArch.archName === "main" ? "" : (":" + inputSourceArch.archName)) + ".js",
     name: inputSourceArch.pkg.name || null,
     declaredExports: _.pluck(inputSourceArch.declaredExports, 'name'),

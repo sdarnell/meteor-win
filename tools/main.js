@@ -4,6 +4,7 @@ if (showRequireProfile)
 
 var _ = require('underscore');
 var Fiber = require('fibers');
+var Future = require('fibers/future');
 var files = require('./files.js');
 var path = require('path');
 var warehouse = require('./warehouse.js');
@@ -369,6 +370,25 @@ var springboard = function (rel, releaseOverride) {
     process.env['METEOR_SPRINGBOARD_RELEASE'] = releaseOverride;
   }
 
+  if (process.platform === 'win32') {
+    var toolsRoot = path.join(packagePath, toolRecord.path);
+
+    // Invoking the batch file results in multiple console prompts
+    // when pressing Ctrl+C. So invoke node directly.
+    newArgv = process.argv;
+    newArgv[0] = path.join(toolsRoot, 'bin', 'node.exe');
+    newArgv[1] = path.join(toolsRoot, 'tools', 'main.js');
+    process.env['NODE_PATH'] = path.join(toolsRoot, 'lib', 'node_modules');
+
+    var ret = new Future();
+    var child = require("child_process").spawn(newArgv[0], newArgv.slice(1),
+      { env: process.env, stdio: 'inherit' });
+    child.on('exit', function (code) {
+      ret.return(code);
+    });
+    process.exit(ret.wait());
+  }
+
   // Now exec; we're not coming back.
   require('kexec')(executable, newArgv);
   throw Error('exec failed?');
@@ -380,6 +400,29 @@ var oldSpringboard = function (toolsVersion) {
   // appropriate tools's meteor shell script.
   var newArgv = process.argv.slice(2);
   var cmd = path.join(warehouse.getToolsDir(toolsVersion), 'bin', 'meteor');
+
+  if (process.platform === 'win32') {
+    var toolsRoot = warehouse.getToolsDir(toolsVersion);
+
+    // Invoking the batch file results in multiple console prompts
+    // when pressing Ctrl+C. So invoke node directly.
+    newArgv = process.argv;
+    newArgv[0] = path.join(toolsRoot, 'bin', 'node.exe');
+    if (fs.existsSync(path.join(toolsRoot, 'tools', 'main.js'))) {
+      newArgv[1] = path.join(toolsRoot, 'tools', 'main.js');
+    } else {
+      newArgv[1] = path.join(toolsRoot, 'tools', 'meteor.js'); // pre-0.7.1
+    }
+    process.env['NODE_PATH'] = path.join(toolsRoot, 'lib', 'node_modules');
+
+    var ret = new Future();
+    var child = require("child_process").spawn(newArgv[0], newArgv.slice(1),
+      { env: process.env, stdio: 'inherit' });
+    child.on('exit', function (code) {
+      ret.return(code);
+    });
+    process.exit(ret.wait());
+  }
 
   // Now exec; we're not coming back.
   require('kexec')(cmd, newArgv);
@@ -885,8 +928,9 @@ Fiber(function () {
   if (process.env.PACKAGE_DIRS) {
     // User can provide additional package directories to search in
     // PACKAGE_DIRS (colon-separated).
+    // PACKAGE_DIRS (colon separated, semi-colon on Windows).
     localPackageDirs = localPackageDirs.concat(
-      _.map(process.env.PACKAGE_DIRS.split(':'), function (p) {
+      _.map(process.env.PACKAGE_DIRS.split(path.delimiter), function (p) {
         return path.resolve(p);
       }));
   }

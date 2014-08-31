@@ -19,6 +19,14 @@ var rejectBadPath = function (p) {
     throw new Error("bad path: " + p);
 };
 
+var toBundleSlashes = function (p) {
+  return (p && path.sep !== '/') ? p.split(path.sep).join('/') : p;
+};
+
+var fromBundleSlashes = function (p) {
+  return (p && path.sep !== '/') ? p.split('/').join(path.sep) : p;
+};
+
 ///////////////////////////////////////////////////////////////////////////////
 // Unibuild
 ///////////////////////////////////////////////////////////////////////////////
@@ -154,7 +162,7 @@ _.extend(Unibuild.prototype, {
       imports: imports,
       useGlobalNamespace: isApp,
       // XXX report an error if there is a package called global-imports
-      importStubServePath: isApp && '/packages/global-imports.js',
+      importStubServePath: isApp && path.sep + 'packages' + path.sep + 'global-imports.js',
       prelinkFiles: self.prelinkFiles,
       packageVariables: self.packageVariables,
       includeSourceMapInstructions: archinfo.matches(self.arch, "web"),
@@ -554,6 +562,7 @@ _.extend(Unipackage.prototype, {
     }
     _.each(mainJson.plugins, function (pluginMeta) {
       rejectBadPath(pluginMeta.path);
+      pluginMeta.path = fromBundleSlashes(pluginMeta.path);
 
       var plugin = bundler.readJsImage(path.join(dir, pluginMeta.path));
 
@@ -571,6 +580,7 @@ _.extend(Unipackage.prototype, {
       // aggressively sanitize path (don't let it escape to parent
       // directory)
       rejectBadPath(unibuildMeta.path);
+      unibuildMeta.path = fromBundleSlashes(unibuildMeta.path);
 
       // Skip unibuilds we already have.
       var alreadyHaveUnibuild = _.find(self.unibuilds, function (unibuild) {
@@ -590,6 +600,8 @@ _.extend(Unipackage.prototype, {
       var nodeModulesPath = null;
       if (unibuildJson.node_modules) {
         rejectBadPath(unibuildJson.node_modules);
+        unibuildJson.node_modules = fromBundleSlashes(unibuildJson.node_modules);
+
         nodeModulesPath = path.join(unibuildBasePath, unibuildJson.node_modules);
       }
 
@@ -598,6 +610,10 @@ _.extend(Unipackage.prototype, {
 
       _.each(unibuildJson.resources, function (resource) {
         rejectBadPath(resource.file);
+        resource.file = fromBundleSlashes(resource.file);
+        resource.path = fromBundleSlashes(resource.path);
+        resource.servePath = fromBundleSlashes(resource.servePath);
+        resource.sourceMap = fromBundleSlashes(resource.sourceMap);
 
         var data = new Buffer(resource.length);
         // Read the data from disk, if it is non-empty. Avoid doing IO for empty
@@ -617,6 +633,7 @@ _.extend(Unipackage.prototype, {
         }
 
         if (resource.type === "prelink") {
+          // rejectBadPath(resource.servePath); ???
           var prelinkFile = {
             source: data.toString('utf8'),
             servePath: resource.servePath
@@ -629,6 +646,7 @@ _.extend(Unipackage.prototype, {
           prelinkFiles.push(prelinkFile);
         } else if (_.contains(["head", "body", "css", "js", "asset"],
                               resource.type)) {
+          // rejectBadPath(resource.path); ???
           resources.push({
             type: resource.type,
             data: data,
@@ -761,7 +779,7 @@ _.extend(Unipackage.prototype, {
 
         mainJson.unibuilds.push({
           arch: unibuild.arch,
-          path: unibuildJsonFile
+          path: toBundleSlashes(unibuildJsonFile)
         });
 
         // Save unibuild dependencies. Keyed by the json path rather than thinking
@@ -782,7 +800,7 @@ _.extend(Unipackage.prototype, {
             // It's important not to put node_modules at the top level of the
             // unipackage, so that it is not visible from within plugins.
             nodeModulesPath = npmDirectories[unibuild.nodeModulesPath] =
-              builder.generateFilename("npm/node_modules", {directory: true});
+              builder.generateFilename(path.join("npm", "node_modules"), {directory: true});
             needToCopyNodeModules = true;
           }
         }
@@ -802,7 +820,7 @@ _.extend(Unipackage.prototype, {
             };
           }),
           implies: (_.isEmpty(unibuild.implies) ? undefined : unibuild.implies),
-          node_modules: nodeModulesPath,
+          node_modules: toBundleSlashes(nodeModulesPath),
           resources: []
         };
 
@@ -819,7 +837,7 @@ _.extend(Unipackage.prototype, {
               throw new Error("Resource data must be a Buffer");
             unibuildJson.resources.push({
               type: resource.type,
-              file: path.join(unibuildDir, resource.type),
+              file: toBundleSlashes(path.join(unibuildDir, resource.type)),
               length: resource.data.length,
               offset: offset[resource.type]
             });
@@ -842,13 +860,13 @@ _.extend(Unipackage.prototype, {
 
           unibuildJson.resources.push({
             type: resource.type,
-            file: builder.writeToGeneratedFilename(
+            file: toBundleSlashes(builder.writeToGeneratedFilename(
               path.join(unibuildDir, resource.servePath),
-              { data: resource.data }),
+              { data: resource.data })),
             length: resource.data.length,
             offset: 0,
-            servePath: resource.servePath || undefined,
-            path: resource.path || undefined
+            servePath: toBundleSlashes(resource.servePath || undefined),
+            path: toBundleSlashes(resource.path || undefined)
           });
         });
 
@@ -857,20 +875,20 @@ _.extend(Unipackage.prototype, {
           var data = new Buffer(file.source, 'utf8');
           var resource = {
             type: 'prelink',
-            file: builder.writeToGeneratedFilename(
-              path.join(unibuildDir, file.servePath),
+            file: toBundleSlashes(builder.writeToGeneratedFilename(
+              path.join(unibuildDir, file.servePath)),
               { data: data }),
             length: data.length,
             offset: 0,
-            servePath: file.servePath || undefined
+            servePath: toBundleSlashes(file.servePath || undefined)
           };
 
           if (file.sourceMap) {
             // Write the source map.
-            resource.sourceMap = builder.writeToGeneratedFilename(
+            resource.sourceMap = toBundleSlashes(builder.writeToGeneratedFilename(
               path.join(unibuildDir, file.servePath + '.map'),
               { data: new Buffer(file.sourceMap, 'utf8') }
-            );
+            ));
           }
 
           unibuildJson.resources.push(resource);
@@ -898,7 +916,7 @@ _.extend(Unipackage.prototype, {
           mainJson.plugins.push({
             name: name,
             arch: plugin.arch,
-            path: path.join(pluginDir, relPath)
+            path: toBundleSlashes(path.join(pluginDir, relPath))
           });
         });
       });
