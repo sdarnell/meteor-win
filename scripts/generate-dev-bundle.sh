@@ -178,6 +178,11 @@ mv $FIBERS_ARCH ..
 rm -rf *
 mv ../$FIBERS_ARCH .
 
+if [ "$UNAME" == "Windows" ] ; then
+# Replace the pre-built fibers with one that works on WinXP and increased threadlocals
+cp "${CHECKOUT_DIR}/scripts/windows/rebuilt-fibers/fibers.node" "$FIBERS_ARCH"
+fi
+
 # Now, install the rest of the npm modules, which are only used by the 'meteor'
 # tool (and not by the bundled app boot.js script).
 cd "${DIR}/lib"
@@ -191,9 +196,11 @@ fi
 npm install source-map@0.1.32
 npm install browserstack-webdriver@2.41.1
 
+if [ "$UNAME" != "Windows" ] ; then
 # Clean up a big zip file it leaves behind.
 npm install phantomjs@1.8.1-1
 rm -rf node_modules/phantomjs/tmp
+fi
 
 # Fork of 1.0.2 with https://github.com/nodejitsu/node-http-proxy/pull/592
 npm install https://github.com/meteor/node-http-proxy/tarball/99f757251b42aeb5d26535a7363c96804ee057f0
