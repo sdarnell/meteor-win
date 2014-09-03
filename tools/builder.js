@@ -215,8 +215,12 @@ _.extend(Builder.prototype, {
 
     self._ensureDirectory(path.dirname(relPath));
     var absPath = path.join(self.buildPath, relPath);
-    if (options.symlink && platformUsesSymlinks) {
-      fs.symlinkSync(options.symlink, absPath);
+    if (options.symlink) {
+      if (platformUsesSymlinks) {
+        fs.symlinkSync(options.symlink, absPath);
+      } else {
+        files.copyFile(options.symlink, absPath);
+      }
     } else {
       // Builder is used to create build products, which should be read-only;
       // users shouldn't be manually editing automatically generated files and

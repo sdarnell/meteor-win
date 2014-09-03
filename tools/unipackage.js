@@ -876,8 +876,8 @@ _.extend(Unipackage.prototype, {
           var resource = {
             type: 'prelink',
             file: toBundleSlashes(builder.writeToGeneratedFilename(
-              path.join(unibuildDir, file.servePath)),
-              { data: data }),
+              path.join(unibuildDir, file.servePath),
+              { data: data })),
             length: data.length,
             offset: 0,
             servePath: toBundleSlashes(file.servePath || undefined)
