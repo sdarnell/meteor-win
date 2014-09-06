@@ -8,6 +8,10 @@ copy LaunchMeteor.exe ..\..\meteor.exe
 
 cd ..\..
 
+copy tools\package-version-parser.js packages\package-version-parser\package-version-parser.js /y
+
+
+
 rem Remove additional copy of npm node_modules
 rd /s/q dev_bundle\bin\node_modules
 
