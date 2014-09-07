@@ -349,7 +349,7 @@ _.extend(Unipackage.prototype, {
 
   tarballName: function () {
     var self = this;
-    return self.name + '-' + self.version + '-' + self.buildArchitectures();
+    return self.name.replace(':', '_') + '-' + self.version + '-' + self.buildArchitectures();
   },
 
   _toolArchitectures: function () {
@@ -1003,7 +1003,7 @@ _.extend(Unipackage.prototype, {
       localPackageLoader, archinfo.host(), uniload.ROOT_PACKAGES,
       function (unipkg) {
         // XXX assert that each name shows up once
-        unipkg.saveToPath(path.join(unipath, unipkg.name), {
+        unipkg.saveToPath(path.join(unipath, unipkg.name.replace(':', '_')), {
           // There's no mechanism to rebuild these packages.
           elideBuildInfo: true
         });
