@@ -336,11 +336,11 @@ var bundleSource = function (unipackage, includeSources, packageDir) {
   var name = unipackage.name;
 
   var tempDir = files.mkdtemp('build-source-package-');
-  var packageTarName = name + '-' + unipackage.version + '-source';
+  var packageTarName = name.replace(':', '_') + '-' + unipackage.version + '-source';
   var dirToTar = path.join(tempDir, 'source', packageTarName);
   var sourcePackageDir = path.join(
     dirToTar,
-    name
+    name.replace(':', '_')
   );
   if (! files.mkdir_p(sourcePackageDir)) {
     process.stderr.write('Failed to create temporary source directory: ' +
@@ -353,7 +353,7 @@ var bundleSource = function (unipackage, includeSources, packageDir) {
     includeSources.push('.npm/package/npm-shrinkwrap.json');
   }
   _.each(unipackage.plugins, function (plugin, pluginName) {
-    var pluginShrinkwrap = path.join('.npm/plugin/', pluginName,
+    var pluginShrinkwrap = path.join('.npm/plugin/', pluginName.replace(':', '_'),
                                      'npm-shrinkwrap.json');
     if (fs.existsSync(path.join(packageDir, pluginShrinkwrap))) {
       includeSources.push(pluginShrinkwrap);

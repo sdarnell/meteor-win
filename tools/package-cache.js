@@ -52,7 +52,7 @@ _.extend(PackageCache.prototype, {
   cachePackageAtPath : function (name, loadPath, unip) {
     var self = this;
     var key = name + "@" + loadPath;
-    var buildDir = path.join(loadPath, '.build.'+  name);
+    var buildDir = path.join(loadPath, '.build.'+  name.replace(':', '_'));
 
     self.loadedPackages[key] = {
         pkg: unip,
@@ -154,7 +154,7 @@ _.extend(PackageCache.prototype, {
       });
     });
     // Does it have an up-to-date build?
-    var buildDir = path.join(loadPath, '.build.'+  name);
+    var buildDir = path.join(loadPath, '.build.'+  name.replace(':', '_'));
     if (fs.existsSync(buildDir)) {
       unip = new unipackage.Unipackage;
       var maybeUpToDate = true;

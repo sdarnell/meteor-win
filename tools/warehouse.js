@@ -120,11 +120,13 @@ _.extend(warehouse, {
     // particular file name ("package.js") inside the directory, but since we
     // always install packages by untarring to a temporary directory and
     // renaming atomically, we shouldn't worry about partial packages.)
+    name = name.replace(':', '_');
     return fs.existsSync(
       path.join(warehouse.getWarehouseDir(), 'packages', name, version));
   },
 
   getPackageFreshFile: function (name, version) {
+    name = name.replace(':', '_');
     return path.join(warehouse.getWarehouseDir(), 'packages', name, version, '.fresh');
   },
 
@@ -395,7 +397,7 @@ _.extend(warehouse, {
     fiberHelpers.parallelEach(
       packagesToDownload, function (version, name) {
         var packageDir = path.join(
-          warehouseDirectory, 'packages', name, version);
+          warehouseDirectory, 'packages', name.replace(':', '_'), version);
         var packageUrl = WAREHOUSE_URLBASE + "/packages/" + name +
               "/" + version +
               "/" + name + '-' + version + "-" + platform + ".tar.gz";

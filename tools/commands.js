@@ -261,6 +261,15 @@ main.registerCommand({
       return 1;
     }
 
+    packageDir = options.appDir
+          ? path.resolve(options.appDir, 'packages', packageName.replace(':', '_'))
+          : path.resolve(packageName.replace(':', '_'));
+
+    if (fs.existsSync(packageDir)) {
+      process.stderr.write(packageName + ": Already exists" + inYourApp + "\n");
+      return 1;
+    }
+
     var transform = function (x) {
       var xn = x.replace(/~name~/g, packageName);
 

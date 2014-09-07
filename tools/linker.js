@@ -282,7 +282,7 @@ _.extend(File.prototype, {
     var self = this;
 
     if (self.module.name)
-      return self.module.name + "/" + self.sourcePath;
+      return require('path').join(self.module.name.replace(':', '_'), self.sourcePath);
     else
       return require('path').basename(self.sourcePath);
   },

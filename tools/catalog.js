@@ -995,7 +995,7 @@ _.extend(CompleteCatalog.prototype, {
         if (! buildmessage.jobHasMessages()) {
           // Save the build, for a fast load next time
           try {
-            var buildDir = path.join(sourcePath, '.build.'+ name);
+            var buildDir = path.join(sourcePath, '.build.'+ name.replace(':', '_'));
             files.addToGitignore(sourcePath, '.build*');
             unip.saveToPath(buildDir, {
               buildOfPath: sourcePath,
@@ -1078,6 +1078,7 @@ _.extend(CompleteCatalog.prototype, {
         include: [/\/$/]
       });
       _.each(packages, function (p) {
+        p = p.replace(':', '_')
         watch.readAndWatchFile(watchSet,
                                path.join(packageDir, p, 'package.js'));
         watch.readAndWatchFile(watchSet,
@@ -1125,7 +1126,7 @@ _.extend(CompleteCatalog.prototype, {
       var loadPath = packageSource.sourceRoot;
       if (namedPackages && !_.contains(namedPackages, name))
         return;
-      var buildDir = path.join(loadPath, '.build.' + name);
+      var buildDir = path.join(loadPath, '.build.' + name.replace(':', '_'));
       files.rm_recursive(buildDir);
     });
 
@@ -1211,7 +1212,7 @@ _.extend(BuiltUniloadCatalog.prototype, {
 
     self._knownPackages = {};
     _.each(fs.readdirSync(options.uniloadDir), function (package) {
-      if (fs.existsSync(path.join(options.uniloadDir, package,
+      if (fs.existsSync(path.join(options.uniloadDir, package.replace(':', '_'),
                                   'unipackage.json'))) {
         self._knownPackages[package] = true;
 
@@ -1233,7 +1234,7 @@ _.extend(BuiltUniloadCatalog.prototype, {
     var self = this;
     self._requireInitialized();
     if (_.has(self._knownPackages, name)) {
-      return path.join(self.uniloadDir, name);
+      return path.join(self.uniloadDir, name.replace(':', '_'));
     }
     return null;
   }

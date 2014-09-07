@@ -577,7 +577,7 @@ var compileUnibuild = function (unipkg, inputSourceArch, packageLoader,
       // XXX duplicates _pathForSourceMap() in linker
       pathForSourceMap: (
         inputSourceArch.pkg.name
-          ? path.join(inputSourceArch.pkg.name, relPath)
+          ? path.join(inputSourceArch.pkg.name.replace(':', '_'), relPath)
           : path.basename(relPath)),
       // null if this is an app. intended to be used for the sources
       // dictionary for source maps.
@@ -683,8 +683,8 @@ var compileUnibuild = function (unipkg, inputSourceArch, packageLoader,
     // combinedServePath is either [pkgname].js or [pluginName]:plugin.js.
     // XXX: If we change this, we can get rid of source arch names!
     combinedServePath: isApp ? null :
-      path.sep + "packages" + path.sep + inputSourceArch.pkg.name +
-      (inputSourceArch.archName === "main" ? "" : (":" + inputSourceArch.archName)) + ".js",
+      path.sep + "packages" + path.sep + inputSourceArch.pkg.name.replace(':', '_') +
+      (inputSourceArch.archName === "main" ? "" : ("_" + inputSourceArch.archName)) + ".js",
     name: inputSourceArch.pkg.name || null,
     declaredExports: _.pluck(inputSourceArch.declaredExports, 'name'),
     jsAnalyze: jsAnalyze

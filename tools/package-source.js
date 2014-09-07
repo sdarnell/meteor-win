@@ -1178,7 +1178,7 @@ _.extend(PackageSource.prototype, {
     };
 
     // Serve root of the package.
-    self.serveRoot = path.join(path.sep, 'packages', self.name);
+    self.serveRoot = path.join(path.sep, 'packages', self.name.replace(':', '_'));
 
     // Name of the test.
     if (hasTests) {
