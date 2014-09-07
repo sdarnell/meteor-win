@@ -6,6 +6,6 @@ Package.describe({
 // bcrypt is an npm package that 
 // has different binaries for differnet architectures.
 Npm.depends({
-  bcrypt: '0.7.7'
+  bcrypt: '0.7.8'
 });
 
