@@ -362,7 +362,7 @@ main.registerCommand({
     url: pkgVersion.source.url,
     encoding: null
   });
-  var sourcePath = files.mkdtemp(name + '-' +
+  var sourcePath = files.mkdtemp(name.replace(':', '_') + '-' +
                                  versionString + '-source-');
   // XXX check tarballHash!
   files.extractTarGz(sourceTarball, sourcePath);
