@@ -927,7 +927,6 @@ Fiber(function () {
 
   if (process.env.PACKAGE_DIRS) {
     // User can provide additional package directories to search in
-    // PACKAGE_DIRS (colon-separated).
     // PACKAGE_DIRS (colon separated, semi-colon on Windows).
     localPackageDirs = localPackageDirs.concat(
       _.map(process.env.PACKAGE_DIRS.split(path.delimiter), function (p) {
