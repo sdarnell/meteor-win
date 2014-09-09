@@ -450,7 +450,7 @@ files.copyFile = function (from, to) {
 
   var stats = fs.statSync(from);
   if (!stats.isFile()) {
-    throw Error("cannot copy non-files");
+    throw Error("cannot copy non-file: " + from);
   }
 
   // Create the file as readable and writable by everyone, and executable by

@@ -219,7 +219,8 @@ _.extend(Builder.prototype, {
       if (platformUsesSymlinks) {
         fs.symlinkSync(options.symlink, absPath);
       } else {
-        files.copyFile(options.symlink, absPath);
+        // Source may be a directory (e.g. node_modules)
+        files.cp_r(options.symlink, absPath);
       }
     } else {
       // Builder is used to create build products, which should be read-only;
