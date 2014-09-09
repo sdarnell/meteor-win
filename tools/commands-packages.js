@@ -369,7 +369,7 @@ main.registerCommand({
 
   // XXX Factor out with packageClient.bundleSource so that we don't
   // have knowledge of the tarball structure in two places.
-  var packageDir = path.join(sourcePath, name);
+  var packageDir = path.join(sourcePath, name.replace(':', '_'));
 
   if (! fs.existsSync(packageDir)) {
     process.stderr.write('Malformed source tarball\n');
