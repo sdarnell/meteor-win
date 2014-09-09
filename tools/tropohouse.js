@@ -202,7 +202,13 @@ _.extend(exports.Tropohouse.prototype, {
     var downloadedArches = [];
     var packageLinkTarget = null;
     try {
-      packageLinkTarget = fs.readlinkSync(packageLinkFile);
+      if (process.platform === 'win32') {
+        var packageData = fs.readFileSync(path.join(packageLinkFile, 'unipackage.json'), 'utf8');
+        packageData = JSON.parse(packageData);
+        downloadedArches = _.pluck(packageData.unibuilds, 'arch');
+      } else {
+        packageLinkTarget = fs.readlinkSync(packageLinkFile);
+      }
     } catch (e) {
       // Complain about anything other than "we don't have it at all". This
       // includes "not a symlink": The main reason this would not be a symlink
@@ -279,11 +285,18 @@ _.extend(exports.Tropohouse.prototype, {
     var newPackageLinkTarget = '.' + version + '.'
           + utils.randomToken() + '++' + unipackage.buildArchitectures();
     var combinedDirectory = self.packagePath(packageName, newPackageLinkTarget);
+    if (process.platform === 'win32') {
+      combinedDirectory = self.packagePath(packageName, '.tmp_' + version);
+    }
     unipackage.saveToPath(combinedDirectory, {
       // We got this from the server, so we can't rebuild it.
       elideBuildInfo: true
     });
-    files.symlinkOverSync(newPackageLinkTarget, packageLinkFile);
+    if (process.platform === 'win32') {
+      files.renameDirAlmostAtomically(combinedDirectory, packageLinkFile);
+    } else {
+      files.symlinkOverSync(newPackageLinkTarget, packageLinkFile);
+    }
 
     // Clean up old version.
     if (packageLinkTarget) {
