@@ -1486,7 +1486,8 @@ _.extend(PackageSource.prototype, {
       //
       // Uniload sets its sourceRoot to "/", which is a little strange. Uniload
       // does not need to store dependency versions either.
-      if (self.name && self.sourceRoot !== "/") {
+      // See initFromOptions() in this file, which uses path.sep.
+      if (self.name && self.sourceRoot !== path.sep) {
         fs.writeFileSync(versionsFile, JSON.stringify(versions, null, 2), 'utf8');
       }
     } catch (e) {
