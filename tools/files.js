@@ -563,8 +563,17 @@ files.extractTarGz = function (buffer, destPath) {
 
   var extractDir = path.join(tempDir, topLevelOfArchive[0]);
   makeTreeReadOnly(extractDir);
-  fs.renameSync(extractDir, destPath);
-  fs.rmdirSync(tempDir);
+  try {
+    fs.renameSync(extractDir, destPath);
+  } catch (e) {
+    if (e.code !== 'EPERM')
+      throw e;
+
+    console.log('Failed to rename, copying instead extractDir='+extractDir+' dest='+destPath);
+    files.cp_r(extractDir, destPath);
+  }
+
+  files.rm_recursive(tempDir);
 };
 
 // Tar-gzips a directory, returning a stream that can then be piped as
