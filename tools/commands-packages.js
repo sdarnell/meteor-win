@@ -641,6 +641,10 @@ main.registerCommand({
           // should reconsider if, for example, we want to publish all of them
           // in a release.
           var packageDir = path.resolve(path.join(localPackageDir, item));
+
+          // Map back to colons so packages have the appropriate name
+          item = item.replace('_', ':');
+
           // Consider a directory to be a package source tree if it
           // contains 'package.js'. (We used to support unipackages in
           // localPackageDirs, but no longer.)

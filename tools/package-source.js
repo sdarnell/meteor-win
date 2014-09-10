@@ -680,7 +680,7 @@ _.extend(PackageSource.prototype, {
       // For backwards-compatibility, we will take the package name from the
       // directory of the package. That was what we used to do: in fact, we used
       // to only do that.
-      self.name = path.basename(dir);
+      self.name = path.basename(dir).replace('_', ':');
     }
 
     // Check to see if our name is valid.
