@@ -629,7 +629,7 @@ _.extend(Unipackage.prototype, {
             fs.closeSync(fd);
           }
           if (count !== resource.length)
-            throw new Error("couldn't read entire resource");
+            throw new Error("couldn't read entire resource   expected="+resource.length+" actual="+count+" f="+path.join(unibuildBasePath, resource.file));
         }
 
         if (resource.type === "prelink") {
