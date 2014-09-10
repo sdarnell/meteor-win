@@ -644,13 +644,13 @@ _.extend(Sandbox.prototype, {
       toolPackageDirectory = '.' + toolPackage.version + '.XXX++'
         + toolPackage.buildArchitectures();
       toolPackage.saveToPath(path.join(self.warehouse, packagesDirectoryName,
-                                       toolPackageName, toolPackageDirectory),
+                                       toolPackageName.replace(':', '_'), toolPackageDirectory),
                              { elideBuildInfo: true });
     });
 
     fs.symlinkSync(toolPackageDirectory,
                    path.join(self.warehouse, packagesDirectoryName,
-                             toolPackageName, toolPackage.version));
+                             toolPackageName.replace(':', '_'), toolPackage.version));
     stubCatalog.collections.packages.push({
       name: toolPackageName,
       _id: utils.randomToken()
@@ -769,7 +769,7 @@ _.extend(Sandbox.prototype, {
 
     // And a cherry on top
     fs.symlinkSync(path.join(packagesDirectoryName,
-                             toolPackageName, toolPackage.version,
+                             toolPackageName.replace(':', '_'), toolPackage.version,
                              'meteor-tool-' + archinfo.host(), 'meteor'),
                    path.join(self.warehouse, 'meteor'));
   }

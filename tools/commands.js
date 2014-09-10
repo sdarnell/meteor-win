@@ -986,7 +986,7 @@ main.registerCommand({
           // we are able to resolve the test package's dependency on the
           // main package. This is not ideal (I hate how this mutates global
           // state) but it'll do for now.
-          var packageDir = path.resolve(p);
+          var packageDir = path.resolve(p.replace(':', '_'));
           catalog.complete.addLocalPackage(packageDir);
 
           if (buildmessage.jobHasMessages()) {

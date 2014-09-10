@@ -672,7 +672,7 @@ main.registerCommand({
                 if (packageSource.includeTool) {
                   // Remove the build directory.
                   files.rm_recursive(
-                    path.join(packageSource.sourceRoot, '.build.' + item));
+                    path.join(packageSource.sourceRoot, '.build.' + item.replace(':', '_')));
                 }
 
                 process.stdout.write(".");

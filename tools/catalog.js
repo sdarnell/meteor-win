@@ -881,7 +881,7 @@ _.extend(CompleteCatalog.prototype, {
     buildmessage.assertInCapture();
 
     var sourcePath = self.packageSources[name].sourceRoot;
-    var buildDir = path.join(sourcePath, '.build.' + name);
+    var buildDir = path.join(sourcePath, '.build.' + name.replace(':', '_'));
     if (fs.existsSync(buildDir)) {
       var unip = new unipackage.Unipackage;
       try {

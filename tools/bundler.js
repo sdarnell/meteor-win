@@ -667,7 +667,7 @@ _.extend(Target.prototype, {
                   // depend on each other, they won't be able to find each
                   // other!
                   preferredBundlePath: path.join(
-                    'npm', unibuild.pkg.name, 'node_modules')
+                    'npm', unibuild.pkg.name.replace(':', '_'), 'node_modules')
                 });
                 self.nodeModulesDirectories[unibuild.nodeModulesPath] = nmd;
               }

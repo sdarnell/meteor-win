@@ -802,7 +802,7 @@ compiler.compile = function (packageSource, options) {
         // rest of the package, so they need their own separate npm
         // shrinkwrap and cache state.
         npmDir: path.resolve(path.join(packageSource.sourceRoot, '.npm',
-                                       'plugin', info.name)),
+                                       'plugin', info.name.replace(':', '_'))),
         dependencyVersions: packageSource.dependencyVersions,
         catalog: packageSource.catalog,
         ignoreProjectDeps: options.ignoreProjectDeps
