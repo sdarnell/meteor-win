@@ -97,7 +97,7 @@ Log._getCallerDetails = function () {
       return {file: "eval"};
     }
 
-    if (!line.match(/packages\/(?:local-test:)?logging(?:\/|\.js)/))
+    if (!line.match(/packages[\/\\](?:local-test[:_])?logging(?:[\/\\]|\.js)/))
       break;
   }
 
@@ -115,7 +115,7 @@ Log._getCallerDetails = function () {
   // Possible format: https://foo.bar.com/scripts/file.js?random=foobar
   // XXX: if you can write the following in better way, please do it
   // XXX: what about evals?
-  details.file = match[1].split('/').slice(-1)[0].split('?')[0];
+  details.file = match[1].split(/[\/\\]/).slice(-1)[0].split('?')[0];
 
   return details;
 };
