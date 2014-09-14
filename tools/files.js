@@ -331,6 +331,9 @@ files.treeHash = function (root, options) {
     var absPath = path.join(root, relativePath);
     var stat = fs.lstatSync(absPath);
 
+    // Path separators are included in hash, so convert to forward slashes
+    relativePath = relativePath.replace(/\\/g, '/');
+
     if (stat.isDirectory()) {
       if (relativePath) {
         updateHash('dir ' + JSON.stringify(relativePath) + '\n');
