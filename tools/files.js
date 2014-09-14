@@ -541,6 +541,10 @@ files.extractTarGz = function (buffer, destPath) {
       future.isResolved() || future.throw(e);
     });
   var extractor = new tar.Extract({ path: tempDir })
+    .on('entry', function (e) {
+      // Some bundles/packages will have colons in directory names
+      e.path = e.path.replace(/:/g, '_');
+    })
     .on('error', function (e) {
       future.isResolved() || future.throw(e);
     })

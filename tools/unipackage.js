@@ -24,6 +24,8 @@ var toBundleSlashes = function (p) {
 };
 
 var fromBundleSlashes = function (p) {
+  // Pre 0.9.2 bundles may contain files with colons
+  p = p ? p.replace(/:/g, '_') : p;
   return (p && path.sep !== '/') ? p.split('/').join(path.sep) : p;
 };
 
