@@ -1,0 +1,6 @@
+# We need files to have unix line endings (just lf) to avoid
+# issues with the packages folder (which we run treehash over).
+
+*.js text eol=lf
+*.json text eol=lf
+
