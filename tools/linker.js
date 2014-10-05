@@ -104,7 +104,8 @@ _.extend(Module.prototype, {
       return _.map(self.files, function (file) {
         var node = file.getPrelinkedOutput({ preserveLineNumbers: true });
         var results = node.toStringWithSourceMap({
-          file: file.servePath
+          // sourceMap file names need to use forward slashes
+          file: file.servePath.replace(/\\/g, '/')
         }); // results has 'code' and 'map' attributes
 
         var sourceMap = results.map.toJSON();
@@ -140,7 +141,8 @@ _.extend(Module.prototype, {
     var node = new sourcemap.SourceNode(null, null, null, chunks);
 
     var results = node.toStringWithSourceMap({
-      file: self.combinedServePath
+      // sourceMap file names need to use forward slashes
+      file: self.combinedServePath.replace(/\\/g, '/')
     }); // results has 'code' and 'map' attributes
     return [{
       source: results.code,
@@ -281,10 +283,14 @@ _.extend(File.prototype, {
   _pathForSourceMap: function () {
     var self = this;
 
+    var result;
     if (self.module.name)
-      return require('path').join(self.module.name.replace(':', '_'), self.sourcePath);
+      result = require('path').join(self.module.name.replace(':', '_'), self.sourcePath);
     else
-      return require('path').basename(self.sourcePath);
+      result = require('path').basename(self.sourcePath);
+
+    // SourceMaps need to use forward slashes
+    return result.replace(/\\/g, '/');
   },
 
   // Options:
@@ -591,6 +597,11 @@ var link = function (options) {
       var sourceMapJson = JSON.parse(file.sourceMap);
       sourceMapJson.mappings = (new Array(headerLines + 1).join(';')) +
         sourceMapJson.mappings;
+
+      // Make sure sourceMaps use forward slashes      
+      sourceMapJson.file = sourceMapJson.file.replace(/\\/g, '/');
+      sourceMapJson.sources = sourceMapJson.sources.map(function (s) { return s.replace(/\\/g, '/'); });
+
       ret.push({
         source: header + file.source + footer,
         servePath: file.servePath,
