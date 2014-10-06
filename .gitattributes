@@ -3,6 +3,10 @@
 
 *.js   eol=lf
 *.json eol=lf
+*.css  eol=lf
+*.md   eol=lf
 README eol=lf
+*.coffee eol=lf
+*.litcoffee eol=lf
 .gitignore eol=lf
 .gitattributes eol=lf
