@@ -336,8 +336,8 @@ _.extend(File.prototype, {
     if (! self.bare)
       chunks.push("(function () {\n\n");
 
-    // Banner
-    var bannerLines = [self.servePath.slice(1)];
+    // Banner - use forward slashes for consistency across platforms
+    var bannerLines = [self.servePath.slice(1).replace(/\\/g, '/')];
     if (self.bare) {
       bannerLines.push(
         "This file is in bare mode and is not in its own closure.");

@@ -1517,7 +1517,7 @@ var writeTargetToPath = function (name, target, outputPath, options) {
   return {
     name: name,
     arch: target.mostCompatibleArch(),
-    path: path.join('programs', name, relControlFilePath)
+    path: toBundleSlashes(path.join('programs', name, relControlFilePath))
   };
 };
 
