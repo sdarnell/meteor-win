@@ -616,6 +616,27 @@ files.createTarball = function (dirPath, tarball, options) {
   future.wait();
 };
 
+files.retryOnEperm = function(func, options) {
+  options = options || {};
+  var times = options.times || 5;
+  var delay = options.delay || 100;
+  while (true) {
+    try {
+      func();
+      return;
+    } catch (e) {
+      if (e.code === 'EPERM' && times-- > 0) {
+        if (options.message) {
+          console.log('\nretryOnEperm ' + options.message + '\n');
+        }
+        utils.sleepMs(delay);
+      } else {
+        throw e;
+      }
+    }
+  }
+};
+
 // Use this if you'd like to replace a directory with another
 // directory as close to atomically as possible. It's better than
 // recursively deleting the target directory first and then
@@ -629,7 +650,9 @@ files.renameDirAlmostAtomically = function (fromDir, toDir) {
   // Get old dir out of the way, if it exists.
   var movedOldDir = true;
   try {
-    fs.renameSync(toDir, garbageDir);
+    files.retryOnEperm(function () {
+      fs.renameSync(toDir, garbageDir);
+    });
   } catch (e) {
     if (e.code !== 'ENOENT')
       throw e;
@@ -637,7 +660,9 @@ files.renameDirAlmostAtomically = function (fromDir, toDir) {
   }
 
   // Now rename the directory.
-  fs.renameSync(fromDir, toDir);
+  files.retryOnEperm(function () {
+    fs.renameSync(fromDir, toDir);
+  });
 
   // ... and delete the old one.
   if (movedOldDir)
