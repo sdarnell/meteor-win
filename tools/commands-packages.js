@@ -787,7 +787,12 @@ main.registerCommand({
 
     if (messages.hasMessages()) {
       process.stderr.write("\n" + messages.formatMessages());
-      return 1;
+
+      if (process.platform === 'win32') {
+        toPublish = []; // Avoid publishing packages during release creation
+      } else {
+        return 1;
+      }
     };
 
     // We now have an object of packages that have new versions on disk that
