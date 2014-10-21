@@ -718,6 +718,7 @@ files.run = function (command /*, arguments */) {
   child_process.execFile(
     command, args, {}, function (error, stdout, stderr) {
       if (! (error === null || error.code === 0)) {
+        console.log('execFile error', error);
         future.return(null);
       } else {
         future.return(stdout);
