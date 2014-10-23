@@ -20,14 +20,15 @@ using Microsoft.Win32.SafeHandles;
 [assembly: AssemblyCompany("Stephen Darnell")]
 [assembly: AssemblyProduct("Meteor")]
 [assembly: AssemblyCopyright("Copyright 2013 - 2014 Stephen Darnell")]
-[assembly: AssemblyVersion("0.3.1.0")]
-[assembly: AssemblyFileVersion("0.3.1.0")]
+[assembly: AssemblyVersion("0.4.0.0")]
+[assembly: AssemblyFileVersion("0.4.0.0")]
 
 namespace LaunchMeteor
 {
     class Program
     {
-        private const string BOOTSTRAP_FILE = "meteor-bootstrap-Windows_i686.tar.gz";
+        // private const string BOOTSTRAP_FILE = "meteor-bootstrap-Windows_i686.tar.gz"; // pre-0.9.x
+        private const string BOOTSTRAP_FILE = "meteor-bootstrap-os.windows.x86_32.tar.gz";
         private const string BOOTSTRAP_URL = "https://win-install.meteor.com/bootstrap/" + BOOTSTRAP_FILE;
 
         private const string METEOR_WAREHOUSE_DIR = "METEOR_WAREHOUSE_DIR";
@@ -57,9 +58,10 @@ namespace LaunchMeteor
                     Exit(1);
                 };
             
-            if (args.Length == 1 && args[0] == "-downloaded")
+            if (args.Length == 1 && args[0] == "--downloaded")
             {
                 bootstrapFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, BOOTSTRAP_FILE);
+                args = new string[0];
             }
 
             // Check if we're running from a git checkout
@@ -83,11 +85,12 @@ namespace LaunchMeteor
                 Environment.SetEnvironmentVariable(METEOR_WAREHOUSE_DIR, warehouse);
             }
 
-            if (!File.Exists(Path.Combine(warehouse, "meteor.bat")))
+            if (!File.Exists(Path.Combine(warehouse, "meteor.exe")) &&
+                !File.Exists(Path.Combine(warehouse, "meteor.bat"))) // pre 0.9.x
             {
                 if (Directory.Exists(warehouse))
                 {
-                    Console.WriteLine("'{0}' exists, but does not contain a meteor.bat", warehouse);
+                    Console.WriteLine("'{0}' exists, but does not contain a meteor executable", warehouse);
                     Console.WriteLine("\nRemove it and try again.");
                     Exit(1);
                 }
@@ -95,14 +98,31 @@ namespace LaunchMeteor
             }
 
             // Find latest tools in the warehouse and start meteor from there
-            var latest = File.ReadAllText(Path.Combine(warehouse, "tools\\latest")).Trim();
-            var tools = Path.Combine(Path.Combine(warehouse, "tools"), latest);
+            var meteorSymlink = Path.Combine(warehouse, "meteor.symlink");
+            if (File.Exists(meteorSymlink))
+            {
+                var meteor = Path.Combine(warehouse, File.ReadAllText(meteorSymlink).Trim());
+                root = Path.GetDirectoryName(meteor);
 
-            Environment.SetEnvironmentVariable("NODE_PATH", Path.Combine(tools, "lib\\node_modules"));
-            if (File.Exists(Path.Combine(tools, "tools\\main.js")))
-                Exec(Path.Combine(tools, "bin\\node.exe"), Path.Combine(tools, "tools\\main.js"), args);
-            else // pre-0.7.1, initial js file was meteor.js
-                Exec(Path.Combine(tools, "bin\\node.exe"), Path.Combine(tools, "tools\\meteor.js"), args);
+                Environment.SetEnvironmentVariable("NODE_PATH", Path.Combine(root, "dev_bundle\\lib\\node_modules"));
+                Exec(Path.Combine(root, "dev_bundle\\bin\\node.exe"), Path.Combine(root, "tools\\main.js"), args);
+            }
+            else if (File.Exists(Path.Combine(warehouse, "tools\\latest"))) // pre 0.9.x
+            {
+                var latest = File.ReadAllText(Path.Combine(warehouse, "tools\\latest")).Trim();
+                var tools = Path.Combine(Path.Combine(warehouse, "tools"), latest);
+
+                Environment.SetEnvironmentVariable("NODE_PATH", Path.Combine(tools, "lib\\node_modules"));
+                if (File.Exists(Path.Combine(tools, "tools\\main.js")))
+                    Exec(Path.Combine(tools, "bin\\node.exe"), Path.Combine(tools, "tools\\main.js"), args);
+                else // pre-0.7.1, initial js file was meteor.js
+                    Exec(Path.Combine(tools, "bin\\node.exe"), Path.Combine(tools, "tools\\meteor.js"), args);
+            }
+            else
+            {
+                Console.WriteLine("Unable to start Meteor. '{0}' is missing.", meteorSymlink);
+                Exit(1);
+            }
         }
 
         #region Executing child processes
