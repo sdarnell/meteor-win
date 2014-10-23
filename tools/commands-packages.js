@@ -645,6 +645,10 @@ main.registerCommand({
           // Map back to colons so packages have the appropriate name
           item = item.replace('_', ':');
 
+          if (item === 'meteor-tool') { // Hack hack - fix this better
+            item = 'windows:meteor-tool';
+          }
+
           // Consider a directory to be a package source tree if it
           // contains 'package.js'. (We used to support unipackages in
           // localPackageDirs, but no longer.)
@@ -844,8 +848,8 @@ main.registerCommand({
     // Set the remaining release information. For now, when we publish from
     // checkout, we always set the meteor tool as the tool. We don't include the
     // tool in the packages list.
-    relConf.tool="meteor-tool@" + myPackages["meteor-tool"];
-    delete myPackages["meteor-tool"];
+    relConf.tool="windows:meteor-tool@" + myPackages["windows:meteor-tool"];
+    delete myPackages["windows:meteor-tool"];
     relConf.packages=myPackages;
   }
 
@@ -2152,6 +2156,7 @@ main.registerCommand({
         title: "downloading tool package " + toolPkg.package + "@" +
           toolPkg.constraint
       }, function () {
+        console.log("### downloading tool package " + toolPkg.package + "@" + toolPkg.constraint);
         tmpTropo.maybeDownloadPackageForArchitectures({
           packageName: toolPkg.package,
           version: toolPkg.constraint,
@@ -2162,11 +2167,21 @@ main.registerCommand({
         buildmessage.enterJob({
           title: "downloading package " + pkgName + "@" + pkgVersion
         }, function () {
-          tmpTropo.maybeDownloadPackageForArchitectures({
-            packageName: pkgName,
-            version: pkgVersion,
-            architectures: [osArch]  // XXX 'web.browser' too?
-          });
+          console.log("### downloading package " + pkgName + "@" + pkgVersion);
+
+          if (process.platform === 'win32' && files.inCheckout()) {
+            // We can't download arbitrary packages (due to semi-colons),
+            // so build a release from our local packages.
+            var packagesRoot = path.join(files.getCurrentToolsDir(), "packages");
+            var name = /^windows:/.test(pkgName) ? pkgName.substr(8) : pkgName;
+            files.cp_r(path.join(packagesRoot, name, '.build.'+name), tmpTropo.packagePath(pkgName, pkgVersion));
+          } else {
+            tmpTropo.maybeDownloadPackageForArchitectures({
+              packageName: pkgName,
+              version: pkgVersion,
+              architectures: [osArch]  // XXX 'web.browser' too?
+            });            
+          }
         });
       });
     });
@@ -2187,12 +2202,23 @@ main.registerCommand({
     var toolRecord = _.findWhere(toolUnipackage.toolsOnDisk, {arch: osArch});
     if (!toolRecord)
       throw Error("missing tool for " + osArch);
-    fs.symlinkSync(
-      path.join(
-        tmpTropo.packagePath(toolPkg.package, toolPkg.constraint, true),
-        toolRecord.path,
-        'meteor'),
-      path.join(tmpTropo.root, 'meteor'));
+
+    if (process.platform === 'win32') {
+      var relPath = path.join(tmpTropo.packagePath(toolPkg.package, toolPkg.constraint, true),
+          toolRecord.path, 'meteor');
+      fs.writeFileSync(path.join(tmpTropo.root, 'meteor.symlink'), relPath, 'utf8');
+
+      files.copyFile(
+        path.join(files.getCurrentToolsDir(), 'meteor.exe'),
+        path.join(tmpTropo.root, 'meteor.exe'));
+    } else {
+      fs.symlinkSync(
+        path.join(
+          tmpTropo.packagePath(toolPkg.package, toolPkg.constraint, true),
+          toolRecord.path,
+          'meteor'),
+        path.join(tmpTropo.root, 'meteor'));
+    }
 
     files.createTarball(
       tmpTropo.root,
