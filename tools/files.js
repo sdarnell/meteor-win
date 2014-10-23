@@ -684,7 +684,7 @@ files.symlinkOverSync = function (linkText, file) {
 
   // On Windows don't use real symlinks
   if (process.platform === 'win32') {
-    fs.writeFileSync(file + '.symlink', linkText);
+    fs.writeFileSync(file + '.symlink', linkText, 'utf8');
     return;
   }
 

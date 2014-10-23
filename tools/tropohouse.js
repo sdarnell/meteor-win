@@ -349,6 +349,9 @@ _.extend(exports.Tropohouse.prototype, {
   latestMeteorSymlink: function () {
     var self = this;
     var linkPath = path.join(self.root, 'meteor');
+    if (process.platform === 'win32') {
+      return fs.readFileSync(linkPath + '.symlink', 'utf8').trim();
+    }
     return fs.readlinkSync(linkPath);
   },
 
