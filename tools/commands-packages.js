@@ -2156,7 +2156,6 @@ main.registerCommand({
         title: "downloading tool package " + toolPkg.package + "@" +
           toolPkg.constraint
       }, function () {
-        console.log("### downloading tool package " + toolPkg.package + "@" + toolPkg.constraint);
         tmpTropo.maybeDownloadPackageForArchitectures({
           packageName: toolPkg.package,
           version: toolPkg.constraint,
@@ -2167,9 +2166,9 @@ main.registerCommand({
         buildmessage.enterJob({
           title: "downloading package " + pkgName + "@" + pkgVersion
         }, function () {
-          console.log("### downloading package " + pkgName + "@" + pkgVersion);
-
           if (process.platform === 'win32' && files.inCheckout()) {
+            console.log("### copying package " + pkgName + "@" + pkgVersion);
+
             // We can't download arbitrary packages (due to semi-colons),
             // so build a release from our local packages.
             var packagesRoot = path.join(files.getCurrentToolsDir(), "packages");

@@ -1,6 +1,6 @@
 {
  "track": "windows:METEOR",
- "version": "0.9.0.1-rc1",
+ "version": "0.9.0.1-rc3",
  "recommended": false,
  "official": false,
  "description": "The unofficial port of Meteor for Windows."
