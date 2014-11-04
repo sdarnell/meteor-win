@@ -2173,7 +2173,11 @@ main.registerCommand({
             // so build a release from our local packages.
             var packagesRoot = path.join(files.getCurrentToolsDir(), "packages");
             var name = /^windows:/.test(pkgName) ? pkgName.substr(8) : pkgName;
-            files.cp_r(path.join(packagesRoot, name, '.build.'+name), tmpTropo.packagePath(pkgName, pkgVersion));
+            var destPackage = tmpTropo.packagePath(pkgName, pkgVersion);
+            files.cp_r(path.join(packagesRoot, name, '.build.'+name), destPackage);
+
+            // Built packages don't include the buildinfo.json file as they contain local paths
+            fs.unlinkSync(path.join(destPackage, 'buildinfo.json'));
           } else {
             tmpTropo.maybeDownloadPackageForArchitectures({
               packageName: pkgName,
