@@ -28,10 +28,35 @@ $ mkdir dev_bundle ; tar xf dev_bundle_Windows*.tar.gz -C dev_bundle
 
 Then switch to a regular command prompt window at the root, and run:
 ```
-scripts\windows\build.bat <releaseName>
+scripts\windows\build.bat
 ```
 
-The release name is optional but if specified builds the bootstrap package
-and prepares a directory with the tarballs etc. in the right place.
+This builds the 'checkout' which should allow you to run locally.
+So now you should be able to run meteor, for example:
+```
+.\meteor search sacha
+```
 
-Congratulations, you're done.
+If you get to the point where you want to publish that release, here are some
+notes to help. Currently only sdarnell can do this because the windows
+packages are owned by him.
+
+If meteor-tool has been updated:
+```
+cd packages\meteor-tool
+Update package.js to bump version number
+..\..\meteor publish [--create]
+```
+
+Then update the scripts\admin\windows-release-experimental.json file and
+run the following command to publish the release (list of versions):
+```
+meteor publish-release scripts\admin\windows-release-experimental.json --from-checkout [--create-track]
+```
+
+Finally, to build the bootstrap tarball run:
+```
+set TEMP=c:\t
+mkdir %TEMP%
+meteor admin make-bootstrap-tarballs windows:METEOR@0.9.0.1-rc3 c:\tmp\tarballdir
+```

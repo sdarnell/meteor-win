@@ -1,3 +1,18 @@
+
+@echo off
+
+where /q git.exe
+if not errorlevel 1 goto gotgit
+if not exist "%ProgramFiles(x86)%\Git\bin\git.exe" (
+  echo Couldn't find git.exe on PATH
+  goto:eof
+)
+
+echo Adding '%ProgramFiles(x86)%\Git\bin' to your PATH
+set PATH=%PATH%;%ProgramFiles(x86)%\Git\bin
+
+:gotgit
+
 @echo on
 
 pushd "%~dp0"
@@ -11,7 +26,6 @@ cd ..\..
 copy tools\package-version-parser.js packages\package-version-parser\package-version-parser.js /y
 
 
-
 rem Remove additional copy of npm node_modules
 rd /s/q dev_bundle\bin\node_modules
 
@@ -22,26 +36,7 @@ rd /s/q dev_bundle\lib\node_modules\npm\node_modules\request\node_modules\form-d
 rd /s/q dev_bundle\lib\node_modules\request\node_modules\form-data\node_modules\combined-stream\node_modules\delayed-stream\test
 rd /s/q dev_bundle\lib\node_modules\request\node_modules\form-data\node_modules\combined-stream\test
 
-set NODE_PATH=%CD%\dev_bundle\lib\node_modules
-
-where /q git.exe
-if errorlevel 1 (
-  echo Couldn't find git.exe on PATH
-  popd
-  goto:eof
-)
-
-echo Calling build-release.js
-dev_bundle\bin\node.exe scripts\admin\build-release.js
-
-if [%1] == [] (
-  echo Skipping bootstrap package as release name not specified
-) else (
-  echo Building bootstrap package
-  dev_bundle\bin\node.exe scripts\admin\build-bootstrap.js %1
-
-  echo Copying LaunchMeteor.exe
-  copy scripts\windows\LaunchMeteor.exe dist\public
-)
+echo Calling .\meteor.exe --get-ready
+.\meteor.exe --get-ready
 
 popd
