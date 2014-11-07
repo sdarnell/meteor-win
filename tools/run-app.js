@@ -614,7 +614,13 @@ _.extend(AppRunner.prototype, {
         var oldFuture = self.runFuture = new Future;
 
         // Notify the server that new client assets have been added to the build.
-        process.kill(appProcess.proc.pid, 'SIGUSR2');
+        if (process.platform === 'win32') {
+          // TODO: Need a better way to notify the child on windows
+          // this works, albeit slowly.
+          process.kill(appProcess.proc.pid);
+        } else {
+          process.kill(appProcess.proc.pid, 'SIGUSR2');
+        }
 
         // Establish a watcher on the new files.
         setupClientWatcher();
