@@ -39,7 +39,8 @@ So now you should be able to run meteor, for example:
 
 If you get to the point where you want to publish that release, here are some
 notes to help. Currently only sdarnell can do this because the windows
-packages are owned by him.
+packages are owned by him. If you want to release your own, you need to
+change the prefix.
 
 If meteor-tool has been updated:
 ```
@@ -60,3 +61,9 @@ set TEMP=c:\t
 mkdir %TEMP%
 meteor admin make-bootstrap-tarballs windows:METEOR@0.9.0.1-rc3 c:\tmp\tarballdir
 ```
+
+
+Misc notes:
+
+I'd suggest enabling long paths with git:
+   git config --global core.longpaths true
