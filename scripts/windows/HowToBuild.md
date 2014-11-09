@@ -59,7 +59,7 @@ Finally, to build the bootstrap tarball run:
 ```
 set TEMP=c:\t
 mkdir %TEMP%
-meteor admin make-bootstrap-tarballs windows:METEOR@0.9.0.1-rc3 c:\tmp\tarballdir
+meteor admin make-bootstrap-tarballs windows:METEOR@0.9.0.1-rc4 c:\tmp\tarballdir
 ```
 
 
