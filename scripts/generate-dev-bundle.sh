@@ -187,7 +187,8 @@ fi
 # tool (and not by the bundled app boot.js script).
 cd "${DIR}/lib"
 npm install request@2.33.0
-npm install fstream@1.0.2
+# Use fstream with fix for windows long paths
+npm install https://github.com/sdarnell/fstream/tarball/8675e386e19cd7476e084a03ba04a1aefbe4a721
 npm install tar@1.0.1
 # kexec isn't supported on windows, but isn't needed
 if [ "$UNAME" != "Windows" ] ; then
