@@ -376,9 +376,9 @@ var springboard = function (rel, releaseOverride) {
     // Invoking the batch file results in multiple console prompts
     // when pressing Ctrl+C. So invoke node directly.
     newArgv = process.argv;
-    newArgv[0] = path.join(toolsRoot, 'bin', 'node.exe');
+    newArgv[0] = path.join(toolsRoot, 'dev_bundle', 'bin', 'node.exe');
     newArgv[1] = path.join(toolsRoot, 'tools', 'main.js');
-    process.env['NODE_PATH'] = path.join(toolsRoot, 'lib', 'node_modules');
+    process.env['NODE_PATH'] = path.join(toolsRoot, 'dev_bundle', 'lib', 'node_modules');
 
     var ret = new Future();
     var child = require("child_process").spawn(newArgv[0], newArgv.slice(1),
