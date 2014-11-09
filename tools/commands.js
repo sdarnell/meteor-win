@@ -484,7 +484,7 @@ main.registerCommand({
   // architectures. See archinfo.js for more information on what the
   // architectures are, what they mean, et cetera.
   var VALID_ARCHITECTURES =
-  ["os.osx.x86_64", "os.linux.x86_64", "os.linux.x86_32"];
+  ["os.osx.x86_64", "os.linux.x86_64", "os.linux.x86_32", "os.windows.x86_32"];
   if (options.architecture &&
       _.indexOf(VALID_ARCHITECTURES, options.architecture) === -1) {
     process.stderr.write("Invalid architecture: " + options.architecture + "\n");
