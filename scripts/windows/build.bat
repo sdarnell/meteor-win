@@ -34,7 +34,6 @@ rd /s/q dev_bundle\lib\node_modules\npm\node_modules\request\node_modules\form-d
 rd /s/q dev_bundle\lib\node_modules\npm\node_modules\request\node_modules\form-data\node_modules\combined-stream\test
 
 rd /s/q dev_bundle\lib\node_modules\request\node_modules\form-data\node_modules\combined-stream\node_modules\delayed-stream\test
-rd /s/q dev_bundle\lib\node_modules\request\node_modules\form-data\node_modules\combined-stream\test
 
 echo Calling .\meteor.exe --get-ready
 .\meteor.exe --get-ready
